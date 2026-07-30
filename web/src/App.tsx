@@ -5,6 +5,7 @@ import TicketCard from './TicketCard'
 import BranchDialog from './BranchDialog'
 import WorktreesDialog from './WorktreesDialog'
 import SettingsDialog from './SettingsDialog'
+import TicketDetailDialog from './TicketDetailDialog'
 import { readTheme, watchSystemTheme } from './theme'
 
 type Load =
@@ -31,6 +32,7 @@ export default function App() {
   const [showWorktrees, setShowWorktrees] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [activity, setActivity] = useState<Record<string, TicketActivity>>({})
+  const [detail, setDetail] = useState<Ticket | null>(null)
 
   const fetchTickets = useCallback(async (fresh: boolean) => {
     if (fresh) setRefreshing(true)
@@ -170,6 +172,7 @@ export default function App() {
                   ticket={t}
                   activity={activity[t.key]}
                   onInitialize={setSelected}
+                  onDetail={setDetail}
                 />
               ))}
             </div>
@@ -177,6 +180,7 @@ export default function App() {
         ))}
       </div>
 
+      {detail && <TicketDetailDialog ticket={detail} onClose={() => setDetail(null)} />}
       {selected && (
         <BranchDialog
           ticket={selected}

@@ -181,6 +181,29 @@ invocación se aceptó.
 
 En macOS y Linux se usan `open` y `xdg-open`. Solo está verificado en Windows.
 
+## Detalle del ticket
+
+Cada tarjeta tiene un botón **Detalle** que abre la ficha completa sin salir del panel:
+estado, tipo, prioridad, asignado, quién reporta, fechas, componentes, etiquetas, el
+ticket padre si lo hay, y la descripción y los comentarios de Jira.
+
+La descripción llega en **ADF** (Atlassian Document Format), un árbol JSON — ni texto ni
+HTML. Se convierte a Markdown en el servidor y se renderiza en el cliente.
+
+La alternativa era pedir `expand=renderedFields`, que devuelve HTML ya montado por Jira,
+pero pintarlo obligaría a inyectar HTML de terceros en la página. Convertir nosotros deja
+el control del resultado y evita esa superficie: el render no habilita HTML crudo, así
+que cualquier etiqueta que venga en un ticket se muestra como texto y no se ejecuta.
+
+El conversor cubre lo que estos tickets usan de verdad —párrafos, encabezados, listas
+anidadas, tablas, bloques de código con lenguaje, citas, reglas y las marcas
+`code`/`strong`/`em`/`link`— y degrada con elegancia lo que no conoce: un nodo
+desconocido con hijos aporta igualmente su texto en vez de desaparecer. Está cubierto por
+`npm test`.
+
+El detalle se pide siempre fresco a Jira, sin pasar por la caché de la lista: se abre
+justamente para leer lo último del ticket.
+
 ## Seguimiento de lo ya iniciado
 
 Cada ticket de la lista muestra si ya lo empezaste, y el botón cambia a **Retomar**

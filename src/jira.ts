@@ -27,6 +27,36 @@ export interface JiraIssue {
   }
 }
 
+interface JiraUser {
+  displayName?: string
+  emailAddress?: string
+  avatarUrls?: Record<string, string>
+}
+
+export interface JiraIssueDetail {
+  key: string
+  fields: {
+    summary: string
+    created: string
+    updated: string
+    duedate: string | null
+    description: unknown
+    status: { name: string; statusCategory: { key: string } }
+    issuetype: { name: string }
+    priority: { name: string } | null
+    resolution: { name: string } | null
+    assignee: JiraUser | null
+    reporter: JiraUser | null
+    labels: string[]
+    components: { name: string }[]
+    parent?: { key: string; fields?: { summary?: string } }
+    comment?: {
+      total?: number
+      comments?: { id: string; author?: JiraUser; created: string; body: unknown }[]
+    }
+  }
+}
+
 export interface JiraCredentials {
   site: string
   email: string
@@ -97,6 +127,28 @@ export class JiraClient {
 
   async myself(): Promise<{ accountId: string; displayName: string; emailAddress?: string }> {
     return this.request('/rest/api/3/myself')
+  }
+
+  /** Ficha completa de un ticket. La descripcion y los comentarios llegan en ADF. */
+  async issue(key: string): Promise<JiraIssueDetail> {
+    const fields = [
+      'summary',
+      'status',
+      'issuetype',
+      'priority',
+      'assignee',
+      'reporter',
+      'created',
+      'updated',
+      'duedate',
+      'resolution',
+      'labels',
+      'components',
+      'parent',
+      'description',
+      'comment',
+    ].join(',')
+    return this.request(`/rest/api/3/issue/${encodeURIComponent(key)}?fields=${fields}`)
   }
 
   async search(jql: string): Promise<JiraIssue[]> {

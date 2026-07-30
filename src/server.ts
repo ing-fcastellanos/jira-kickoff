@@ -12,6 +12,7 @@ import { initializeRoutes } from './routes/initialize'
 import { worktreeRoutes } from './routes/worktrees'
 import { settingsRoutes } from './routes/settings'
 import { activityRoutes } from './routes/activity'
+import { detailRoutes } from './routes/detail'
 import { HistoryStore } from './history'
 import { TicketService } from './ticket-service'
 
@@ -47,6 +48,7 @@ async function main(): Promise<void> {
   await app.register(worktreeRoutes, { store })
   await app.register(settingsRoutes, { store })
   await app.register(activityRoutes, { store, history })
+  await app.register(detailRoutes, { store })
 
   // La UI compilada solo existe despues de `npm run build`. En desarrollo la
   // sirve Vite en :5100 y proxea /api hasta aca, asi que su ausencia es normal.

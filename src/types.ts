@@ -49,6 +49,37 @@ export interface InitializeResult {
   launchError: string | null
 }
 
+export interface TicketComment {
+  id: string
+  author: string
+  avatar: string | null
+  at: string
+  /** Markdown, convertido desde el ADF que devuelve Jira. */
+  body: string
+}
+
+export interface TicketDetail {
+  key: string
+  url: string
+  summary: string
+  status: string
+  statusCategory: string
+  issueType: string
+  priority: string | null
+  resolution: string | null
+  assignee: { name: string; avatar: string | null } | null
+  reporter: { name: string; avatar: string | null } | null
+  created: string
+  updated: string
+  dueDate: string | null
+  labels: string[]
+  components: string[]
+  parent: { key: string; summary: string; url: string } | null
+  /** Markdown, convertido desde el ADF que devuelve Jira. */
+  description: string
+  comments: TicketComment[]
+}
+
 export interface TicketActivity {
   /** Nulo cuando solo consta en el historial y ya no hay worktree. */
   projectKey: string | null

@@ -61,10 +61,12 @@ export default function TicketCard({
   ticket,
   activity,
   onInitialize,
+  onDetail,
 }: {
   ticket: Ticket
   activity: TicketActivity | undefined
   onInitialize: (ticket: Ticket) => void
+  onDetail: (ticket: Ticket) => void
 }) {
   const urgent = ticket.priority ? HIGH_PRIORITIES.has(ticket.priority.toLowerCase()) : false
   const started = Boolean(activity?.worktree)
@@ -98,13 +100,22 @@ export default function TicketCard({
 
       <div className="flex items-center justify-between gap-3">
         {activity ? <Progress activity={activity} /> : <span />}
-        <button
-          type="button"
-          onClick={() => onInitialize(ticket)}
-          className="shrink-0 rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:border-zinc-400 hover:bg-white dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
-        >
-          {started ? 'Retomar' : 'Inicializar'}
-        </button>
+        <div className="flex shrink-0 gap-1.5">
+          <button
+            type="button"
+            onClick={() => onDetail(ticket)}
+            className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:border-zinc-400 hover:bg-white dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+          >
+            Detalle
+          </button>
+          <button
+            type="button"
+            onClick={() => onInitialize(ticket)}
+            className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:border-zinc-400 hover:bg-white dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+          >
+            {started ? 'Retomar' : 'Inicializar'}
+          </button>
+        </div>
       </div>
     </article>
   )
