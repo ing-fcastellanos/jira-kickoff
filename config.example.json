@@ -1,0 +1,39 @@
+{
+  "server": {
+    "port": 8787
+  },
+  "jira": {
+    "site": "https://tu-dominio.atlassian.net",
+    "statuses": ["To Do", "In Progress"],
+    "extraJql": ""
+  },
+  "worktrees": {
+    "dir": ".claude/worktrees"
+  },
+  "branch": {
+    "pattern": "feature/{{ticket-lower}}-{{slug}}",
+    "slugMaxLength": 40
+  },
+  "launch": {
+    "mode": "open"
+  },
+  "prompt": {
+    "base": "Vamos a trabajar el ticket {{ticket}}.",
+    "additions": [
+      "Revisa los comentarios del ticket antes de proponer nada.",
+      "El ticket esta en {{url}}."
+    ]
+  },
+  "projects": {
+    "ABC": {
+      "repo": "/ruta/a/tu/repositorio",
+      "baseBranch": "main",
+      "enabled": true
+    },
+    "XYZ": {
+      "repo": "C:\\ruta\\a\\otro\\repositorio",
+      "baseBranch": "develop",
+      "enabled": true
+    }
+  }
+}

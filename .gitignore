@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.local
+
+# Configuracion con rutas de esta maquina. Se versiona config.example.json.
+config.json
+
+.DS_Store
+Thumbs.db

@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+
+/*
+ * Por defecto `dark:` en Tailwind v4 sigue a prefers-color-scheme, lo que haria
+ * imposible elegir el tema a mano. Con esta variante depende de una clase en
+ * <html>, que es lo que aplica theme.ts.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+  }
+}
