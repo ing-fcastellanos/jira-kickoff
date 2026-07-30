@@ -4,6 +4,7 @@ import { z } from 'zod'
 import type { ConfigStore } from '../config'
 import type { WorktreeInfo, WorktreesResponse } from '../types'
 import { GitError } from '../git'
+import { EditorError, openInEditor } from '../editor'
 import {
   branchIsMerged,
   deleteBranch,
@@ -15,6 +16,11 @@ import {
   unpushedCount,
 } from '../worktree'
 import { replyWithError } from './errors'
+
+const openEditorBody = z.object({
+  projectKey: z.string().min(1),
+  path: z.string().min(1),
+})
 
 const removeBody = z.object({
   projectKey: z.string().min(1),
@@ -99,9 +105,43 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
     const payload: WorktreesResponse = {
       worktrees: perProject.flat(),
       errors,
+      editorLabel: config.editor.label,
       fetchedAt: new Date().toISOString(),
     }
     return payload
+  })
+
+  app.post('/api/worktrees/open-editor', async (req, reply) => {
+    const parsed = openEditorBody.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
+      })
+    }
+    const { projectKey, path } = parsed.data
+
+    const config = store.get()
+    const project = config.projects[projectKey]
+    if (!project) {
+      return reply.status(400).send({ error: `El proyecto ${projectKey} no esta en config.json.` })
+    }
+
+    // Mismo cerrojo que el borrado: solo se abre lo que este dentro de la
+    // carpeta de worktrees. Sin esto se podria lanzar el editor sobre
+    // cualquier ruta del disco que llegue por la peticion.
+    if (!isInsideWorktreeDir(project.repo, config.worktrees.dir, path)) {
+      return reply.status(400).send({
+        error: `${path} esta fuera de la carpeta de worktrees de ${projectKey}. No se abre.`,
+      })
+    }
+
+    try {
+      await openInEditor(config.editor.command, config.editor.args, resolve(path))
+      return { opened: path, editor: config.editor.label }
+    } catch (err) {
+      if (err instanceof EditorError) return reply.status(502).send({ error: err.message })
+      throw err
+    }
   })
 
   app.post('/api/worktrees/remove', async (req, reply) => {

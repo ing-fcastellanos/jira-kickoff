@@ -43,7 +43,15 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   )
 }
 
-export default function BranchDialog({ ticket, onClose }: { ticket: Ticket; onClose: () => void }) {
+export default function BranchDialog({
+  ticket,
+  onClose,
+  onInitialized,
+}: {
+  ticket: Ticket
+  onClose: () => void
+  onInitialized: () => void
+}) {
   const [load, setLoad] = useState<Load>({ status: 'loading' })
   const [branchName, setBranchName] = useState('')
   const [filter, setFilter] = useState('')
@@ -133,12 +141,13 @@ export default function BranchDialog({ ticket, onClose }: { ticket: Ticket; onCl
         prompt,
       })
       setResult(res)
+      onInitialized()
     } catch (err) {
       setSubmitError((err as Error).message)
     } finally {
       setSubmitting(false)
     }
-  }, [ticket.key, branchName, prompt])
+  }, [ticket.key, branchName, prompt, onInitialized])
 
   return (
     <div

@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { resolvePrompt, type ConfigStore } from '../config'
 import type { TicketService } from '../ticket-service'
+import type { HistoryStore } from '../history'
 import type { InitializeResult, PromptResponse, Ticket } from '../types'
 import { PROMPT_MAX_LENGTH, PROMPT_WARN_LENGTH, URL_SAFE_LENGTH, composePrompt } from '../prompt'
 import { buildDeepLink, openUrl } from '../launcher'
@@ -10,6 +11,8 @@ import {
   createWorktree,
   fetchOrigin,
   isValidBranchName,
+  setOriginHead,
+  setWorktreePermissionMode,
   worktreePathFor,
 } from '../worktree'
 import { replyWithError } from './errors'
@@ -30,8 +33,9 @@ interface Resolved {
 export const initializeRoutes: FastifyPluginAsync<{
   store: ConfigStore
   tickets: TicketService
+  history: HistoryStore
 }> = async (app, opts) => {
-  const { store, tickets } = opts
+  const { store, tickets, history } = opts
 
   /** Resuelve ticket, repo y ruta de worktree, o responde el error correspondiente. */
   async function resolve(ticketKey: string, reply: FastifyReply): Promise<Resolved | null> {
@@ -68,6 +72,7 @@ export const initializeRoutes: FastifyPluginAsync<{
         const prompt = composePrompt(resolvePrompt(store.get(), r.ticket.projectKey), {
           ticket: r.ticket,
           branch: req.query.branch ?? '',
+          baseBranch: r.baseBranch,
           repo: r.repo,
           worktree: r.worktree,
         })
@@ -106,12 +111,26 @@ export const initializeRoutes: FastifyPluginAsync<{
       // se crea desde `origin/<base>`. Sin este fetch se partiria de una base vieja.
       await fetchOrigin(r.repo)
 
+      const config = store.get()
+
+      // Claude Code deduce la rama principal de `origin/HEAD`, no de la base que
+      // usamos aqui. Si el remoto declara otra, la sesion la mostrara mal.
+      if (config.worktrees.alignOriginHead) {
+        await setOriginHead(r.repo, r.baseBranch)
+      }
+
       const { action, created } = await createWorktree({
         repo: r.repo,
         worktreePath: r.worktree,
         branch,
         baseBranch: r.baseBranch,
       })
+
+      // El deep link no puede pedir un modo de permisos, asi que se deja escrito
+      // en el worktree antes de abrir la sesion.
+      if (config.launch.permissionMode !== 'inherit') {
+        await setWorktreePermissionMode(r.worktree, config.launch.permissionMode)
+      }
 
       // El worktree ya existe pase lo que pase con el deep link: si falla, el
       // usuario pega el prompt a mano y no pierde ninguno de los pasos previos.
@@ -128,7 +147,7 @@ export const initializeRoutes: FastifyPluginAsync<{
       // En modo `clipboard` no se intenta abrir nada: el worktree queda hecho y
       // la UI ofrece el prompt para pegarlo. Es la salida cuando el deep link
       // deja de funcionar tras una actualizacion de la app.
-      const launchMode = store.get().launch.mode
+      const launchMode = config.launch.mode
       let launched = false
       let launchError: string | null = null
 
@@ -140,6 +159,17 @@ export const initializeRoutes: FastifyPluginAsync<{
           launchError = (err as Error).message
         }
       }
+
+      // Se registra aunque el deep link falle: el worktree existe y el ticket
+      // quedo empezado, que es justo lo que el seguimiento debe reflejar.
+      history.record({
+        ticketKey: r.ticket.key,
+        projectKey: r.ticket.projectKey,
+        branch,
+        worktree: r.worktree,
+        at: new Date().toISOString(),
+        launchMode,
+      })
 
       const result: InitializeResult = {
         ticketKey: r.ticket.key,

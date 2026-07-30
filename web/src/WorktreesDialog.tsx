@@ -56,13 +56,35 @@ function Badges({ w }: { w: WorktreeInfo }) {
   )
 }
 
-function Row({ w, onRemoved }: { w: WorktreeInfo; onRemoved: (path: string) => void }) {
+function Row({
+  w,
+  editorLabel,
+  onRemoved,
+}: {
+  w: WorktreeInfo
+  editorLabel: string
+  onRemoved: (path: string) => void
+}) {
   const [confirming, setConfirming] = useState(false)
   const [alsoBranch, setAlsoBranch] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [opening, setOpening] = useState(false)
+  const [openError, setOpenError] = useState<string | null>(null)
 
   const risky = isRisky(w)
+
+  const open = useCallback(async () => {
+    setOpening(true)
+    setOpenError(null)
+    try {
+      await postJson('/api/worktrees/open-editor', { projectKey: w.projectKey, path: w.path })
+    } catch (err) {
+      setOpenError((err as Error).message)
+    } finally {
+      setOpening(false)
+    }
+  }, [w.projectKey, w.path])
 
   const remove = useCallback(async () => {
     setBusy(true)
@@ -87,19 +109,29 @@ function Row({ w, onRemoved }: { w: WorktreeInfo; onRemoved: (path: string) => v
         <span className="font-mono text-xs font-medium">{w.name}</span>
         <Badges w={w} />
         {!confirming && (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="ml-auto rounded-md border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            Borrar
-          </button>
+          <div className="ml-auto flex shrink-0 gap-1.5">
+            <button
+              type="button"
+              onClick={() => void open()}
+              disabled={opening}
+              className="rounded-md border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              {opening ? 'Abriendo…' : `Abrir en ${editorLabel}`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="rounded-md border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              Borrar
+            </button>
+          </div>
         )}
       </div>
 
-      {w.branch && (
-        <p className="mt-1 truncate font-mono text-xs text-zinc-500">{w.branch}</p>
-      )}
+      {w.branch && <p className="mt-1 truncate font-mono text-xs text-zinc-500">{w.branch}</p>}
+
+      {openError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{openError}</p>}
 
       {confirming && (
         <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
@@ -256,7 +288,12 @@ export default function WorktreesDialog({ onClose }: { onClose: () => void }) {
                   </h3>
                   <ul className="rounded-lg border border-zinc-200 dark:border-zinc-800">
                     {items.map((w) => (
-                      <Row key={w.path} w={w} onRemoved={onRemoved} />
+                      <Row
+                        key={w.path}
+                        w={w}
+                        editorLabel={load.status === 'ready' ? load.data.editorLabel : 'el editor'}
+                        onRemoved={onRemoved}
+                      />
                     ))}
                   </ul>
                 </section>

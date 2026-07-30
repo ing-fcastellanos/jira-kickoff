@@ -437,6 +437,26 @@ export default function SettingsDialog({
                       />
                     </Field>
                   </div>
+
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={draft.worktrees.alignOriginHead}
+                      onChange={(e) => {
+                        const on = e.target.checked
+                        patch((d) => void (d.worktrees.alignOriginHead = on))
+                      }}
+                      className="mt-1"
+                    />
+                    <span>
+                      Apuntar <code className="font-mono text-xs">origin/HEAD</code> a la rama base
+                      <span className="mt-0.5 block text-xs text-zinc-500">
+                        Claude Code deduce la rama principal del repo de esa referencia, no de la
+                        rama base configurada aquí. Si el remoto declara otra, la sesión mostrará
+                        la equivocada. Es un cambio local del clon; nunca se sube.
+                      </span>
+                    </span>
+                  </label>
                 </div>
               </Section>
 
@@ -470,6 +490,45 @@ export default function SettingsDialog({
                 </div>
               </Section>
 
+              <Section
+                title="Editor"
+                hint="El botón «Abrir en …» de la lista de worktrees. Debe estar en el PATH."
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Nombre en el botón">
+                    <input
+                      value={draft.editor.label}
+                      onChange={(e) => patch((d) => void (d.editor.label = e.target.value))}
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Comando">
+                    <input
+                      value={draft.editor.command}
+                      onChange={(e) => patch((d) => void (d.editor.command = e.target.value))}
+                      spellCheck={false}
+                      className={`${inputClass} font-mono`}
+                    />
+                  </Field>
+                </div>
+                <div className="mt-3">
+                  <span className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                    Argumentos
+                  </span>
+                  <StringList
+                    values={draft.editor.args}
+                    onChange={(next) => patch((d) => void (d.editor.args = next))}
+                    placeholder="{{path}}"
+                    addLabel="Añadir argumento"
+                  />
+                  <p className="mt-2 text-xs text-zinc-500">
+                    <code className="font-mono">{'{{path}}'}</code> se sustituye por la ruta del
+                    worktree. Por defecto <code className="font-mono">code -n {'{{path}}'}</code>,
+                    que abre una ventana nueva.
+                  </p>
+                </div>
+              </Section>
+
               <Section title="Al inicializar">
                 <div className="space-y-2">
                   {(
@@ -493,6 +552,32 @@ export default function SettingsDialog({
                     El deep link es interfaz interna de la app y puede romperse en una
                     actualización. La segunda opción es la salida cuando eso pase.
                   </p>
+
+                  <div className="pt-2">
+                    <Field label="Modo de permisos de la sesión">
+                      <select
+                        value={draft.launch.permissionMode}
+                        onChange={(e) => {
+                          const v = e.target.value as FileConfig['launch']['permissionMode']
+                          patch((d) => void (d.launch.permissionMode = v))
+                        }}
+                        className={inputClass}
+                      >
+                        <option value="inherit">Heredar de mis settings</option>
+                        <option value="default">Preguntar (default)</option>
+                        <option value="plan">Plan</option>
+                        <option value="acceptEdits">Aceptar ediciones</option>
+                        <option value="auto">Auto</option>
+                        <option value="bypassPermissions">Saltar permisos</option>
+                      </select>
+                    </Field>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      El deep link no puede pedir un modo, así que se escribe en el
+                      <code className="mx-1 font-mono">.claude/settings.local.json</code>
+                      del worktree. Tiene que ser ese archivo y no el del repo: los modos
+                      elevados que vienen del tier de proyecto la app los descarta en silencio.
+                    </p>
+                  </div>
                 </div>
               </Section>
             </>

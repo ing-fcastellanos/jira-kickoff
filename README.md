@@ -43,7 +43,7 @@ credenciales que git ya tiene configuradas.
 editarlo a mano o, más cómodo, dejarlo casi vacío y rellenarlo desde **Opciones** en la
 propia interfaz.
 
-La UI queda en <http://127.0.0.1:5173> y la API en <http://127.0.0.1:8787>.
+La UI queda en <http://127.0.0.1:5100> y la API en <http://127.0.0.1:8787>.
 
 ## Opciones
 
@@ -55,9 +55,10 @@ validación antes de escribir y escritura atómica:
 | Apariencia | Claro, oscuro o según el sistema. Se guarda en el navegador, no en `config.json`. |
 | Jira | Dominio, qué status incluir y un filtro JQL adicional opcional. |
 | Proyectos | Cada clave de Jira apuntando a un repositorio local, con su rama base. Se pueden desactivar sin borrarlos. |
-| Rama y worktree | Patrón del nombre de rama, con vista previa en vivo, y dónde se crean los worktrees. |
+| Rama y worktree | Patrón del nombre de rama, con vista previa en vivo, dónde se crean los worktrees y si alinear `origin/HEAD` con la rama base. |
+| Editor | Qué comando abre un worktree desde la lista, y con qué argumentos. |
 | Prompt inicial | El comando base y las líneas fijas que lo acompañan. |
-| Al inicializar | Abrir la sesión, o solo crear el worktree y copiar el prompt. |
+| Al inicializar | Abrir la sesión o solo copiar el prompt, y el modo de permisos de la sesión. |
 
 El token de Jira **no** se edita desde la web a propósito: vive en `.env` y no hay razón
 para meterlo en un formulario cuando un archivo lo resuelve igual.
@@ -141,6 +142,30 @@ crea siempre antes de intentar abrir nada.
 Límites conocidos del handler: `q` se trunca a 14 336 caracteres, y el parámetro `file`
 se acepta pero nunca se reenvía a la UI.
 
+### Dos cosas que el deep link no transporta
+
+**La rama base.** Claude Code deduce la rama principal de un repo ejecutando
+`git symbolic-ref --short refs/remotes/origin/HEAD` y quitándole el prefijo `origin/`.
+No mira la rama base configurada aquí. Si tu remoto declara `main` como rama por
+defecto pero trabajas sobre otra, la sesión mostrará la equivocada. La opción
+*Apuntar `origin/HEAD` a la rama base* ejecuta `git remote set-head origin <base>` al
+inicializar; es configuración local del clon y nunca se sube. El equivalente manual,
+una vez por repositorio:
+
+```bash
+git remote set-head origin <rama-base>
+```
+
+**El modo de permisos.** La URL solo lleva `q` y `folder`, así que no hay forma de
+pedir un modo. Se resuelve desde los settings, y una carpeta recién creada no hereda
+nada que no esté en el tier de usuario. La opción *Modo de permisos de la sesión*
+escribe `permissions.defaultMode` en el `.claude/settings.local.json` del worktree.
+
+Tiene que ser ese archivo y no el `settings.json` versionado del repositorio: los modos
+elevados (`auto`, `acceptEdits`, `bypassPermissions`) que llegan desde el tier
+`project` la app los **descarta en silencio**, para que un repositorio no pueda
+auto-concederse permisos. Desde el tier `local` o el de usuario sí se respetan.
+
 ### El lanzador en Windows
 
 `Start-Process` de PowerShell, que es ShellExecute. Se probaron dos alternativas más
@@ -155,6 +180,29 @@ protocolo. Esperarlo, además, convierte su código de salida en una señal real
 invocación se aceptó.
 
 En macOS y Linux se usan `open` y `xdg-open`. Solo está verificado en Windows.
+
+## Seguimiento de lo ya iniciado
+
+Cada ticket de la lista muestra si ya lo empezaste, y el botón cambia a **Retomar**
+cuando hay algo que retomar. La cabecera resume cuántos tienen worktree.
+
+El estado sale de dos sitios distintos, y la diferencia importa:
+
+| Señal | De dónde sale | Por qué |
+|---|---|---|
+| **Worktree activo** + su rama y si tiene cambios sin commitear | de git, en cada carga | No puede desincronizarse. Si borras el worktree a mano, el ticket vuelve a figurar como no empezado — que es la verdad. |
+| **Inicializado hace X · sin worktree** | de `history.json` | Cubre lo que git ya olvidó: que le diste clic y limpiaste el worktree después. |
+
+Que exista worktree manda sobre el historial: es lo único que puedes retomar ahora.
+
+El emparejamiento es directo porque el worktree se nombra como el ticket. En esa misma
+carpeta conviven los worktrees que crea la propia app de Claude Code, con nombres
+generados (`silly-turing-0ec969`) o derivados (`abc-123-explore-2fa6d7`), así que solo
+se consideran los que tienen exactamente forma de clave de Jira.
+
+`/api/activity` consulta únicamente git local — sin `ls-remote`— porque se pide junto
+con la lista de tickets y no puede costar lo que cuesta una llamada de red.
+`history.json` no se versiona.
 
 ## Limpieza de worktrees
 
@@ -174,6 +222,22 @@ Tres salvaguardas, en orden de importancia:
 
 Borrar la rama local es una casilla aparte, desmarcada por defecto, que avisa cuando la
 rama no está fusionada.
+
+Cada fila tiene además un botón para abrirla en el editor, en una ventana nueva. El
+comando es configurable, con `{{path}}` sustituido por la ruta del worktree:
+
+```json
+"editor": { "label": "VS Code", "command": "code", "args": ["-n", "{{path}}"] }
+```
+
+Sirve igual para `cursor {{path}}` o `idea {{path}}`. En Windows la llamada pasa por
+`cmd.exe /c`, porque estos lanzadores son scripts (`code.cmd`) y `spawn` no ejecuta un
+`.cmd` directamente; los argumentos van en un array y nunca concatenados, para que una
+ruta con espacios o con `&` no rompa el comando.
+
+Abrir usa **el mismo cerrojo de ruta que borrar**: solo se abre lo que esté dentro de
+la carpeta de worktrees del proyecto. Sin esa comprobación, una petición manipulada
+podría lanzar el editor sobre cualquier ruta del disco.
 
 ## Detalles de Jira que cuestan descubrir
 

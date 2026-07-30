@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { existsSync } from 'node:fs'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { GitError } from './git'
 import type { BranchAction } from './types'
@@ -153,6 +154,50 @@ export async function deleteBranch(repo: string, branch: string): Promise<void> 
 
 export async function pruneWorktrees(repo: string): Promise<void> {
   await git(repo, ['worktree', 'prune'], QUICK_MS)
+}
+
+/**
+ * Apunta `origin/HEAD` a `branch`.
+ *
+ * Claude Code deduce la rama principal de un repo leyendo esa referencia, no la
+ * rama base configurada aqui. Si no coinciden, la sesion muestra la equivocada.
+ * Es configuracion local del clon: no toca el remoto ni se sube.
+ */
+export async function setOriginHead(repo: string, branch: string): Promise<void> {
+  await git(repo, ['remote', 'set-head', 'origin', branch], QUICK_MS)
+}
+
+/**
+ * Fija el modo de permisos por defecto del worktree.
+ *
+ * Va en `.claude/settings.local.json` (tier `local`) y no en el `settings.json`
+ * versionado: los modos elevados que llegan desde el tier `project` la app los
+ * ignora, para que un repositorio no pueda auto-concederse permisos.
+ *
+ * Se fusiona con lo que ya hubiera en el archivo en vez de reemplazarlo.
+ */
+export async function setWorktreePermissionMode(
+  worktreePath: string,
+  mode: string,
+): Promise<void> {
+  const dir = join(worktreePath, '.claude')
+  const file = join(dir, 'settings.local.json')
+
+  let current: Record<string, unknown> = {}
+  if (existsSync(file)) {
+    try {
+      current = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>
+    } catch {
+      // Un archivo corrupto no debe tumbar la inicializacion; se reescribe.
+      current = {}
+    }
+  }
+
+  const permissions = (current['permissions'] as Record<string, unknown> | undefined) ?? {}
+  const next = { ...current, permissions: { ...permissions, defaultMode: mode } }
+
+  await mkdir(dir, { recursive: true })
+  await writeFile(file, `${JSON.stringify(next, null, 2)}\n`, 'utf8')
 }
 
 export interface CreateWorktreeInput {

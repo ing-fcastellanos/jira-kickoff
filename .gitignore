@@ -6,5 +6,8 @@ dist/
 # Configuracion con rutas de esta maquina. Se versiona config.example.json.
 config.json
 
+# Registro local de inicializaciones.
+history.json
+
 .DS_Store
 Thumbs.db

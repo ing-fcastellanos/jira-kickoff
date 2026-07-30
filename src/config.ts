@@ -27,7 +27,17 @@ const configSchema = z.object({
     /** Se concatena a la JQL generada. Util para acotar a un sprint o a un epic. */
     extraJql: z.string().default(''),
   }),
-  worktrees: z.object({ dir: z.string().min(1) }),
+  worktrees: z.object({
+    dir: z.string().min(1),
+    /**
+     * Claude Code deduce la rama principal de un repo con
+     * `git symbolic-ref refs/remotes/origin/HEAD`, no de la rama base que use
+     * este panel. Si el remoto declara `main` pero aqui se trabaja sobre otra,
+     * la sesion mostrara la equivocada. Con esto se apunta `origin/HEAD` a la
+     * rama base al inicializar. Es un cambio local del repo, nunca se sube.
+     */
+    alignOriginHead: z.boolean().default(false),
+  }),
   branch: z.object({
     pattern: z.string().min(1),
     slugMaxLength: z.number().int().positive(),
@@ -40,8 +50,31 @@ const configSchema = z.object({
        * la salida cuando el deep link deja de funcionar.
        */
       mode: z.enum(['open', 'clipboard']),
+      /**
+       * El deep link solo transporta el prompt y la carpeta: no hay forma de
+       * pedirle un modo de permisos. Se escribe en `.claude/settings.local.json`
+       * del worktree, que es tier `local`.
+       *
+       * Tiene que ser el tier local y no el `settings.json` versionado del repo:
+       * los modos elevados que vienen del tier `project` la app los descarta en
+       * silencio, para que un repositorio no pueda auto-concederse permisos.
+       *
+       * `inherit` no escribe nada y deja que decidan tus settings de usuario.
+       */
+      permissionMode: z
+        .enum(['inherit', 'default', 'plan', 'acceptEdits', 'auto', 'bypassPermissions'])
+        .default('inherit'),
     })
-    .default({ mode: 'open' }),
+    .default({ mode: 'open', permissionMode: 'inherit' }),
+  editor: z
+    .object({
+      /** Nombre que se muestra en el boton. */
+      label: z.string().min(1),
+      command: z.string().min(1),
+      /** `{{path}}` se sustituye por la ruta del worktree. */
+      args: z.array(z.string()),
+    })
+    .default({ label: 'VS Code', command: 'code', args: ['-n', '{{path}}'] }),
   prompt: promptSchema,
   projects: z
     .record(z.string(), projectSchema)

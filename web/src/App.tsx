@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Health, Ticket, TicketsResponse } from './types'
+import type { ActivityResponse, Health, Ticket, TicketActivity, TicketsResponse } from './types'
 import { getJson, relativeTime } from './api'
 import TicketCard from './TicketCard'
 import BranchDialog from './BranchDialog'
@@ -30,6 +30,7 @@ export default function App() {
   const [selected, setSelected] = useState<Ticket | null>(null)
   const [showWorktrees, setShowWorktrees] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [activity, setActivity] = useState<Record<string, TicketActivity>>({})
 
   const fetchTickets = useCallback(async (fresh: boolean) => {
     if (fresh) setRefreshing(true)
@@ -49,15 +50,28 @@ export default function App() {
       .catch(() => setHealth(null))
   }, [])
 
+  // El seguimiento se pide aparte de los tickets: consulta git local y no debe
+  // retrasar la lista, que es lo primero que quieres ver.
+  const refreshActivity = useCallback(() => {
+    getJson<ActivityResponse>('/api/activity')
+      .then((r) => setActivity(r.byTicket))
+      .catch(() => setActivity({}))
+  }, [])
+
   useEffect(() => {
     void fetchTickets(false)
     refreshHealth()
-  }, [fetchTickets, refreshHealth])
+    refreshActivity()
+  }, [fetchTickets, refreshHealth, refreshActivity])
 
   useEffect(() => watchSystemTheme(readTheme), [])
 
   const groups = load.status === 'ready' ? groupByProject(load.data.tickets) : []
   const total = load.status === 'ready' ? load.data.tickets.length : null
+  const started =
+    load.status === 'ready'
+      ? load.data.tickets.filter((t) => activity[t.key]?.worktree).length
+      : 0
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
@@ -66,8 +80,16 @@ export default function App() {
           <h1 className="text-2xl font-semibold tracking-tight">Mi trabajo pendiente</h1>
           {load.status === 'ready' && (
             <p className="mt-1 text-sm text-zinc-500">
-              {total} {total === 1 ? 'ticket' : 'tickets'} · actualizado{' '}
-              {relativeTime(load.data.fetchedAt)}
+              {total} {total === 1 ? 'ticket' : 'tickets'}
+              {started > 0 && (
+                <>
+                  {' · '}
+                  <span className="text-emerald-700 dark:text-emerald-400">
+                    {started} con worktree
+                  </span>
+                </>
+              )}{' '}
+              · actualizado {relativeTime(load.data.fetchedAt)}
             </p>
           )}
         </div>
@@ -143,15 +165,34 @@ export default function App() {
             </h2>
             <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
               {tickets.map((t) => (
-                <TicketCard key={t.key} ticket={t} onInitialize={setSelected} />
+                <TicketCard
+                  key={t.key}
+                  ticket={t}
+                  activity={activity[t.key]}
+                  onInitialize={setSelected}
+                />
               ))}
             </div>
           </section>
         ))}
       </div>
 
-      {selected && <BranchDialog ticket={selected} onClose={() => setSelected(null)} />}
-      {showWorktrees && <WorktreesDialog onClose={() => setShowWorktrees(false)} />}
+      {selected && (
+        <BranchDialog
+          ticket={selected}
+          onClose={() => setSelected(null)}
+          onInitialized={refreshActivity}
+        />
+      )}
+      {showWorktrees && (
+        <WorktreesDialog
+          onClose={() => {
+            setShowWorktrees(false)
+            // Borrar un worktree cambia el seguimiento de su ticket.
+            refreshActivity()
+          }}
+        />
+      )}
       {showSettings && (
         <SettingsDialog
           onClose={() => setShowSettings(false)}

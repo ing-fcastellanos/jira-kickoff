@@ -49,6 +49,20 @@ export interface InitializeResult {
   launchError: string | null
 }
 
+export interface TicketActivity {
+  /** Nulo cuando solo consta en el historial y ya no hay worktree. */
+  projectKey: string | null
+  worktree: { path: string; branch: string | null; dirty: boolean } | null
+  lastInitializedAt: string | null
+  lastBranch: string | null
+  times: number
+}
+
+export interface ActivityResponse {
+  byTicket: Record<string, TicketActivity>
+  fetchedAt: string
+}
+
 export interface WorktreeInfo {
   projectKey: string
   repo: string
@@ -67,6 +81,8 @@ export interface WorktreeInfo {
 export interface WorktreesResponse {
   worktrees: WorktreeInfo[]
   errors: { projectKey: string; error: string }[]
+  /** Para rotular el boton de abrir sin que la UI tenga que pedir los settings. */
+  editorLabel: string
   fetchedAt: string
 }
 

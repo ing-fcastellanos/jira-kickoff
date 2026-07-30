@@ -10,6 +10,7 @@ const PLACEHOLDERS = [
   { token: '{{summary}}', description: 'Titulo del ticket' },
   { token: '{{url}}', description: 'Enlace al ticket en Jira' },
   { token: '{{branch}}', description: 'Rama elegida al inicializar' },
+  { token: '{{baseBranch}}', description: 'Rama base del proyecto, p. ej. main' },
   { token: '{{repo}}', description: 'Ruta local del repositorio' },
   { token: '{{worktree}}', description: 'Ruta del worktree que se creara' },
 ]

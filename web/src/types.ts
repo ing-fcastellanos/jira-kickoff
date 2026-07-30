@@ -7,6 +7,14 @@ export interface ProjectHealth {
   isGitRepo: boolean
 }
 
+export type PermissionMode =
+  | 'inherit'
+  | 'default'
+  | 'plan'
+  | 'acceptEdits'
+  | 'auto'
+  | 'bypassPermissions'
+
 export interface PromptSettings {
   base: string
   additions: string[]
@@ -22,9 +30,10 @@ export interface ProjectSettings {
 export interface FileConfig {
   server: { port: number }
   jira: { site: string; statuses: string[]; extraJql: string }
-  worktrees: { dir: string }
+  worktrees: { dir: string; alignOriginHead: boolean }
   branch: { pattern: string; slugMaxLength: number }
-  launch: { mode: 'open' | 'clipboard' }
+  launch: { mode: 'open' | 'clipboard'; permissionMode: PermissionMode }
+  editor: { label: string; command: string; args: string[] }
   prompt: PromptSettings
   projects: Record<string, ProjectSettings>
 }
@@ -100,6 +109,19 @@ export interface InitializeResult {
   launchError: string | null
 }
 
+export interface TicketActivity {
+  projectKey: string | null
+  worktree: { path: string; branch: string | null; dirty: boolean } | null
+  lastInitializedAt: string | null
+  lastBranch: string | null
+  times: number
+}
+
+export interface ActivityResponse {
+  byTicket: Record<string, TicketActivity>
+  fetchedAt: string
+}
+
 export interface WorktreeInfo {
   projectKey: string
   repo: string
@@ -117,6 +139,7 @@ export interface WorktreeInfo {
 export interface WorktreesResponse {
   worktrees: WorktreeInfo[]
   errors: { projectKey: string; error: string }[]
+  editorLabel: string
   fetchedAt: string
 }
 

@@ -4,6 +4,7 @@ import type { Ticket } from './types'
 export interface PromptContext {
   ticket: Ticket
   branch: string
+  baseBranch: string
   repo: string
   worktree: string
 }
@@ -34,6 +35,7 @@ function render(template: string, ctx: PromptContext): string {
     '{{summary}}': ctx.ticket.summary,
     '{{url}}': ctx.ticket.url,
     '{{branch}}': ctx.branch,
+    '{{baseBranch}}': ctx.baseBranch,
     '{{repo}}': ctx.repo,
     '{{worktree}}': ctx.worktree,
   }
