@@ -1,5 +1,13 @@
 @import 'tailwindcss';
 
+/* Autoalojadas: el panel es local y no debe depender de la red para pintarse. */
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/ibm-plex-mono/600.css';
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+
 /*
  * Por defecto `dark:` en Tailwind v4 sigue a prefers-color-scheme, lo que haria
  * imposible elegir el tema a mano. Con esta variante depende de una clase en
@@ -7,8 +15,250 @@
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Direccion visual 3b "Markdown": gris medio en capas, acento lavanda y sintaxis
+ * visible (##, ###, backticks) como recurso grafico.
+ *
+ * Las utilidades apuntan a variables que cambian con el tema, asi que los
+ * componentes escriben `bg-panel` una sola vez en vez de arrastrar un `dark:`
+ * por cada color. El tema deja de ser una variante repetida y pasa a ser capa.
+ */
+@theme {
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --color-page: var(--page);
+  --color-raised: var(--raised);
+  --color-card: var(--card);
+  --color-panel: var(--panel);
+  --color-input: var(--input);
+  --color-control: var(--control);
+  --color-control-hover: var(--control-hover);
+
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-ink-5: var(--ink-5);
+  --color-ink-6: var(--ink-6);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-line: var(--ok-line);
+  --color-ok-panel: var(--ok-panel);
+
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-line: var(--warn-line);
+  --color-warn-panel: var(--warn-panel);
+
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-line: var(--danger-line);
+  --color-danger-panel: var(--danger-panel);
+  --color-danger-ink: var(--danger-ink);
+
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-info-line: var(--info-line);
+  --color-info-panel: var(--info-panel);
+
+  --color-hot: var(--hot);
+  --color-avatar: var(--avatar);
+}
+
+/*
+ * `html.dark` y no `.dark`: con un solo nombre de clase empataria en
+ * especificidad con el `:root` de la variante clara y ganaria el que fuera
+ * despues en el archivo. Cualificarlo lo hace independiente del orden.
+ */
+html.dark {
+  --page: #16181e;
+  --raised: #23262e;
+  --card: #2c303a;
+  --panel: #262a33;
+  --input: #1c1f26;
+  --control: #363b46;
+  --control-hover: #414653;
+
+  --line: #414653;
+  --line-soft: #333844;
+  --line-strong: #545c6d;
+
+  --ink: #edeff4;
+  --ink-2: #dde2ea;
+  --ink-3: #c6ccd6;
+  --ink-4: #9ba2b0;
+  --ink-5: #8b92a0;
+  --ink-6: #7e8593;
+
+  --accent: #c3a6f0;
+  --accent-hover: #d2bcf5;
+  --accent-ink: #201a2c;
+  --accent-soft: #322a44;
+
+  --ok: #8fd1b0;
+  --ok-bg: #23372c;
+  --ok-line: #3a5f4c;
+  --ok-panel: #1f2e27;
+
+  --warn: #e9c46a;
+  --warn-bg: #413a1e;
+  --warn-line: #6b5320;
+  --warn-panel: #2e2717;
+
+  --danger: #f09b9b;
+  --danger-bg: #3e2529;
+  --danger-line: #6b3b40;
+  --danger-panel: #2b1f22;
+  --danger-ink: #2b1113;
+
+  --info: #8fbee0;
+  --info-bg: #263845;
+  --info-line: #3b4a5c;
+  --info-panel: #212b36;
+
+  --hot: #f0a87b;
+  --avatar: #3e4557;
+
+  --overlay: rgba(11, 12, 16, 0.62);
+  --selection: #3e3358;
+}
+
+/*
+ * El diseño solo define la variante oscura. La clara se deriva conservando el
+ * mismo acento y las mismas relaciones de capa, porque Opciones sigue ofreciendo
+ * los tres modos: quitarla seria romper una funcion que ya existe.
+ */
+:root {
+  --page: #f3f3f7;
+  --raised: #ffffff;
+  --card: #ffffff;
+  --panel: #f7f7fa;
+  --input: #ffffff;
+  --control: #eeeef3;
+  --control-hover: #e4e4ec;
+
+  --line: #dcdce4;
+  --line-soft: #e8e8ee;
+  --line-strong: #b7b7c5;
+
+  --ink: #1b1d23;
+  --ink-2: #2a2d35;
+  --ink-3: #414652;
+  --ink-4: #5c6270;
+  --ink-5: #6e7482;
+  --ink-6: #858b99;
+
+  --accent: #6b4fa8;
+  --accent-hover: #5a3f94;
+  --accent-ink: #ffffff;
+  --accent-soft: #ede6fa;
+
+  --ok: #2f7d5a;
+  --ok-bg: #e3f2ea;
+  --ok-line: #a9d5bf;
+  --ok-panel: #f0f9f4;
+
+  --warn: #8a5d0f;
+  --warn-bg: #fbf0d8;
+  --warn-line: #e0c68a;
+  --warn-panel: #fdf7ea;
+
+  --danger: #b3242c;
+  --danger-bg: #fbe4e5;
+  --danger-line: #e9aeb1;
+  --danger-panel: #fdeef0;
+  --danger-ink: #ffffff;
+
+  --info: #2c6389;
+  --info-bg: #e2eff7;
+  --info-line: #a9cbe2;
+  --info-panel: #f1f8fc;
+
+  --hot: #b5561e;
+  --avatar: #d8dae3;
+
+  --overlay: rgba(30, 32, 40, 0.45);
+  --selection: #ded2f6;
+}
+
 @layer base {
   body {
-    @apply bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+    background-color: var(--page);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  ::selection {
+    background: var(--selection);
+    color: var(--ink);
+  }
+}
+
+@layer components {
+  /*
+   * Marca de sintaxis: los `##`, `###`, `-` y `>` que preceden a los titulos.
+   * Es el recurso que da nombre a la direccion, asi que vive en un solo sitio.
+   */
+  .syntax {
+    font-family: var(--font-mono);
+    font-weight: 400;
+    color: var(--accent);
+  }
+
+  /* Etiqueta de seccion dentro del detalle: versalitas en mono. */
+  .label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-5);
+  }
+
+  /* Insignia compacta de estado, la misma forma en tickets y worktrees. */
+  .badge {
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+}
+
+/*
+ * Aparicion escalonada de la lista. Un solo momento coreografiado al cargar
+ * rinde mas que micro-animaciones repartidas, y no estorba al escanear.
+ */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 260ms cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
   }
 }

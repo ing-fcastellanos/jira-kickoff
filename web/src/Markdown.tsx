@@ -7,23 +7,61 @@ import remarkGfm from 'remark-gfm'
  * Sin `rehype-raw` a proposito: el HTML crudo que pudiera venir del ticket no se
  * ejecuta, solo se muestra como texto. Es contenido de terceros y no tiene por
  * que poder inyectar nada en la pagina.
+ *
+ * Los encabezados conservan su marca (`####`) y las listas su guion, en el mismo
+ * lavanda que el resto de la interfaz: el contenido de Jira ya viene en Markdown
+ * y la direccion visual consiste justamente en no esconderlo.
  */
 export default function Markdown({ children }: { children: string }) {
   return (
-    <div className="space-y-3 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+    <div className="flex flex-col gap-[11px] text-[13.5px] leading-[1.65] text-ink-3">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          h1: (p) => <h3 className="mt-4 text-sm font-semibold text-zinc-900 dark:text-zinc-100" {...p} />,
-          h2: (p) => <h3 className="mt-4 text-sm font-semibold text-zinc-900 dark:text-zinc-100" {...p} />,
-          h3: (p) => <h4 className="mt-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100" {...p} />,
-          h4: (p) => <h5 className="mt-3 text-sm font-medium text-zinc-900 dark:text-zinc-100" {...p} />,
-          p: (p) => <p className="my-2" {...p} />,
-          ul: (p) => <ul className="my-2 list-disc space-y-1 pl-5" {...p} />,
-          ol: (p) => <ol className="my-2 list-decimal space-y-1 pl-5" {...p} />,
+          h1: ({ children }) => (
+            <h4 className="mt-1 text-[13.5px] font-semibold text-ink">
+              <span className="syntax">## </span>
+              {children}
+            </h4>
+          ),
+          h2: ({ children }) => (
+            <h4 className="mt-1 text-[13.5px] font-semibold text-ink">
+              <span className="syntax">### </span>
+              {children}
+            </h4>
+          ),
+          h3: ({ children }) => (
+            <h5 className="mt-1 text-[13.5px] font-semibold text-ink">
+              <span className="syntax">#### </span>
+              {children}
+            </h5>
+          ),
+          h4: ({ children }) => (
+            <h6 className="mt-1 text-[13px] font-semibold text-ink-2">
+              <span className="syntax">##### </span>
+              {children}
+            </h6>
+          ),
+          p: (p) => <p className="text-pretty" {...p} />,
+          strong: (p) => <strong className="font-semibold text-ink" {...p} />,
+          em: (p) => <em className="text-ink-2" {...p} />,
+          ul: (p) => <ul className="flex list-none flex-col gap-1.5 pl-1" {...p} />,
+          ol: (p) => <ol className="flex list-decimal flex-col gap-1.5 pl-5 marker:text-ink-6" {...p} />,
+          li: ({ children, ...rest }) => {
+            // El guion se dibuja aparte para poder teñirlo sin tocar el texto.
+            const ordered = 'data-ordered' in rest
+            return ordered ? (
+              <li {...rest}>{children}</li>
+            ) : (
+              <li className="flex gap-2.5" {...rest}>
+                <span className="syntax shrink-0">-</span>
+                <span className="min-w-0">{children}</span>
+              </li>
+            )
+          },
           a: (p) => (
             <a
-              className="text-sky-700 underline hover:no-underline dark:text-sky-400"
+              className="text-accent hover:underline hover:underline-offset-2"
               target="_blank"
               rel="noreferrer"
               {...p}
@@ -31,44 +69,40 @@ export default function Markdown({ children }: { children: string }) {
           ),
           blockquote: (p) => (
             <blockquote
-              className="my-2 border-l-2 border-zinc-300 pl-3 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
+              className="border-l-2 border-line-strong pl-3 text-[12.5px] italic text-ink-4"
               {...p}
             />
           ),
-          hr: () => <hr className="my-4 border-zinc-200 dark:border-zinc-800" />,
+          hr: () => <hr className="border-line-soft" />,
           code: ({ children, className }) => {
             // Sin lenguaje es codigo en linea; con el, un bloque dentro de <pre>.
             const isBlock = Boolean(className)
             return isBlock ? (
-              <code className="font-mono text-xs">{children}</code>
+              <code className="font-mono text-[11.5px] leading-[1.6] text-ok">{children}</code>
             ) : (
-              <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
-                {children}
-              </code>
+              <code className="font-mono text-[12.5px] text-ok">{children}</code>
             )
           },
           pre: (p) => (
             <pre
-              className="my-2 overflow-x-auto rounded-md bg-zinc-100 p-3 dark:bg-zinc-900"
+              className="overflow-x-auto rounded-md border border-line-soft bg-input px-3 py-2.5"
               {...p}
             />
           ),
           // Las tablas de Jira pueden ser anchas: se desplazan dentro de su caja
           // en vez de forzar scroll horizontal a todo el modal.
           table: (p) => (
-            <div className="my-3 overflow-x-auto">
-              <table className="w-full border-collapse text-xs" {...p} />
+            <div className="overflow-x-auto rounded-lg border border-line">
+              <table className="w-full border-collapse text-[12px]" {...p} />
             </div>
           ),
           th: (p) => (
             <th
-              className="border border-zinc-200 bg-zinc-50 px-2 py-1 text-left font-semibold dark:border-zinc-800 dark:bg-zinc-900"
+              className="border-b border-line bg-panel px-2.5 py-2 text-left text-[11.5px] font-semibold text-ink-4"
               {...p}
             />
           ),
-          td: (p) => (
-            <td className="border border-zinc-200 px-2 py-1 align-top dark:border-zinc-800" {...p} />
-          ),
+          td: (p) => <td className="border-b border-line-soft px-2.5 py-2 align-top" {...p} />,
         }}
       >
         {children}

@@ -2,26 +2,57 @@ import { useEffect, useState } from 'react'
 import type { Ticket, TicketDetail } from './types'
 import { getJson, relativeTime } from './api'
 import Markdown from './Markdown'
+import { Key, Modal, Note } from './ui'
 
 type Load =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready'; data: TicketDetail }
 
-function Meta({ label, children }: { label: string; children: React.ReactNode }) {
+function statusBadge(d: TicketDetail): string {
+  if (d.status.toLowerCase() === 'rejected') return 'bg-danger-bg text-danger'
+  switch (d.statusCategory) {
+    case 'new':
+      return 'bg-info-bg text-info'
+    case 'indeterminate':
+      return 'bg-warn-bg text-warn'
+    default:
+      return 'bg-ok-bg text-ok'
+  }
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0] ?? '')
+    .join('')
+    .toUpperCase()
+}
+
+function Avatar({ name, src }: { name: string; src: string | null }) {
+  if (src) return <img src={src} alt="" className="size-[17px] shrink-0 rounded-full" />
   return (
-    <div className="flex gap-3 py-1">
-      <dt className="w-24 shrink-0 text-xs text-zinc-500">{label}</dt>
-      <dd className="min-w-0 text-xs text-zinc-700 dark:text-zinc-300">{children}</dd>
+    <span className="inline-flex size-[17px] shrink-0 items-center justify-center rounded-full bg-avatar text-[9px] text-ink-3">
+      {initials(name)}
+    </span>
+  )
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex gap-3 border-b border-line-soft py-[7px] last:border-b-0">
+      <dt className="w-[100px] shrink-0 text-[11.5px] text-ink-5">{label}</dt>
+      <dd className="min-w-0 text-xs text-ink-2">{children}</dd>
     </div>
   )
 }
 
 function Person({ person }: { person: { name: string; avatar: string | null } | null }) {
-  if (!person) return <span className="text-zinc-400">sin asignar</span>
+  if (!person) return <span className="text-ink-6">sin asignar</span>
   return (
-    <span className="flex items-center gap-1.5">
-      {person.avatar && <img src={person.avatar} alt="" className="size-4 rounded-full" />}
+    <span className="flex items-center gap-[7px]">
+      <Avatar name={person.name} src={person.avatar} />
       {person.name}
     </span>
   )
@@ -35,14 +66,6 @@ export default function TicketDetailDialog({
   onClose: () => void
 }) {
   const [load, setLoad] = useState<Load>({ status: 'loading' })
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   useEffect(() => {
     let cancelled = false
@@ -61,131 +84,119 @@ export default function TicketDetailDialog({
   const d = load.status === 'ready' ? load.data : null
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Detalle de ${ticket.key}`}
-        className="w-full max-w-3xl rounded-xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header className="flex items-start justify-between gap-4 border-b border-zinc-100 px-5 py-4 dark:border-zinc-800">
-          <div className="min-w-0">
-            <a
-              href={d?.url ?? ticket.url}
-              target="_blank"
-              rel="noreferrer"
-              className="font-mono text-sm font-semibold text-sky-700 hover:underline dark:text-sky-400"
-            >
-              {ticket.key} ↗
-            </a>
-            <h2 className="mt-0.5 text-base font-medium text-zinc-900 dark:text-zinc-100">
-              {d?.summary ?? ticket.summary}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="shrink-0 rounded-md px-2 py-1 text-sm text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+    <Modal
+      label={`Detalle de ${ticket.key}`}
+      maxWidth="max-w-[800px]"
+      onClose={onClose}
+      title={
+        <>
+          <a
+            href={d?.url ?? ticket.url}
+            target="_blank"
+            rel="noreferrer"
+            className="w-fit hover:underline"
           >
-            ✕
-          </button>
-        </header>
+            <Key>{ticket.key}</Key>
+            <span className="ml-1 font-mono text-[13px] text-ok">↗</span>
+          </a>
+          <h2 className="text-[16px] leading-snug font-semibold tracking-tight text-pretty text-ink">
+            <span className="syntax">### </span>
+            {d?.summary ?? ticket.summary}
+          </h2>
+        </>
+      }
+    >
+      <div className="flex max-h-[70vh] flex-col gap-5 overflow-y-auto px-4.5 py-4">
+        {load.status === 'loading' && (
+          <p className="text-[12.5px] text-ink-5">Trayendo el ticket de Jira…</p>
+        )}
 
-        <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
-          {load.status === 'loading' && (
-            <p className="text-sm text-zinc-500">Trayendo el ticket de Jira…</p>
-          )}
+        {load.status === 'error' && <Note tone="danger">{load.message}</Note>}
 
-          {load.status === 'error' && (
-            <div className="rounded-lg border border-red-300 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/40">
-              <p className="text-sm text-red-700 dark:text-red-400">{load.message}</p>
-            </div>
-          )}
-
-          {d && (
-            <>
-              <dl className="mb-5 divide-y divide-zinc-100 rounded-lg border border-zinc-200 px-3 py-1 dark:divide-zinc-800 dark:border-zinc-800">
-                <Meta label="Estado">
-                  {d.status}
-                  {d.resolution && <span className="text-zinc-500"> · {d.resolution}</span>}
-                </Meta>
-                <Meta label="Tipo">
-                  {d.issueType}
-                  {d.priority && <span className="text-zinc-500"> · {d.priority}</span>}
-                </Meta>
-                <Meta label="Asignado">
-                  <Person person={d.assignee} />
-                </Meta>
-                <Meta label="Reporta">
-                  <Person person={d.reporter} />
-                </Meta>
-                <Meta label="Actualizado">
-                  {relativeTime(d.updated)}
-                  <span className="text-zinc-400"> · creado {relativeTime(d.created)}</span>
-                </Meta>
-                {d.dueDate && <Meta label="Vence">{d.dueDate}</Meta>}
-                {d.parent && (
-                  <Meta label="Padre">
-                    <a
-                      href={d.parent.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sky-700 hover:underline dark:text-sky-400"
-                    >
-                      {d.parent.key} {d.parent.summary}
-                    </a>
-                  </Meta>
-                )}
-                {d.components.length > 0 && (
-                  <Meta label="Componentes">{d.components.join(', ')}</Meta>
-                )}
-                {d.labels.length > 0 && <Meta label="Etiquetas">{d.labels.join(', ')}</Meta>}
-              </dl>
-
-              <section>
-                <h3 className="mb-2 text-xs font-semibold tracking-wide text-zinc-500 uppercase">
-                  Descripción
-                </h3>
-                {d.description ? (
-                  <Markdown>{d.description}</Markdown>
-                ) : (
-                  <p className="text-sm text-zinc-400">Este ticket no tiene descripción.</p>
-                )}
-              </section>
-
-              {d.comments.length > 0 && (
-                <section className="mt-6">
-                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-zinc-500 uppercase">
-                    Comentarios ({d.comments.length})
-                  </h3>
-                  <ul className="space-y-4">
-                    {d.comments.map((c) => (
-                      <li
-                        key={c.id}
-                        className="rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-800"
-                      >
-                        <div className="mb-1 flex items-center gap-2 text-xs text-zinc-500">
-                          {c.avatar && <img src={c.avatar} alt="" className="size-4 rounded-full" />}
-                          <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                            {c.author}
-                          </span>
-                          <span>{relativeTime(c.at)}</span>
-                        </div>
-                        <Markdown>{c.body}</Markdown>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
+        {d && (
+          <>
+            <dl className="rounded-lg border border-line bg-panel px-3 py-0.5">
+              <Row label="Estado">
+                <span className={`badge ${statusBadge(d)}`}>{d.status}</span>
+                {d.resolution && <span className="ml-2 text-ink-6">{d.resolution}</span>}
+              </Row>
+              <Row label="Tipo">
+                {d.issueType}
+                {d.priority && <span className="text-ink-6"> · {d.priority}</span>}
+              </Row>
+              <Row label="Asignado">
+                <Person person={d.assignee} />
+              </Row>
+              <Row label="Reporta">
+                <Person person={d.reporter} />
+              </Row>
+              <Row label="Actualizado">
+                {relativeTime(d.updated)}
+                <span className="text-ink-6"> · creado {relativeTime(d.created)}</span>
+              </Row>
+              {d.dueDate && (
+                <Row label="Vence">
+                  <span className="font-mono text-[11.5px] text-warn">{d.dueDate}</span>
+                </Row>
               )}
-            </>
-          )}
-        </div>
+              {d.parent && (
+                <Row label="Padre">
+                  <a
+                    href={d.parent.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent hover:underline hover:underline-offset-2"
+                  >
+                    <span className="font-mono">{d.parent.key}</span> {d.parent.summary}
+                  </a>
+                </Row>
+              )}
+              {d.components.length > 0 && <Row label="Componentes">{d.components.join(', ')}</Row>}
+              {d.labels.length > 0 && (
+                <Row label="Etiquetas">
+                  <span className="flex flex-wrap gap-1.5">
+                    {d.labels.map((l) => (
+                      <span key={l} className="badge bg-accent-soft font-mono text-accent">
+                        {l}
+                      </span>
+                    ))}
+                  </span>
+                </Row>
+              )}
+            </dl>
+
+            <section className="flex flex-col gap-2.5">
+              <h3 className="label">## Descripción</h3>
+              {d.description ? (
+                <Markdown>{d.description}</Markdown>
+              ) : (
+                <p className="text-[12.5px] text-ink-5">Este ticket no tiene descripción.</p>
+              )}
+            </section>
+
+            {d.comments.length > 0 && (
+              <section className="flex flex-col gap-2.5">
+                <h3 className="label">## Comentarios ({d.comments.length})</h3>
+                <ul className="flex flex-col gap-2.5">
+                  {d.comments.map((c) => (
+                    <li
+                      key={c.id}
+                      className="flex flex-col gap-1.5 rounded-lg border border-line bg-panel px-3.5 py-3"
+                    >
+                      <div className="flex items-center gap-2 text-[11.5px] text-ink-5">
+                        <Avatar name={c.author} src={c.avatar} />
+                        <span className="font-semibold text-ink-3">{c.author}</span>
+                        <span>{relativeTime(c.at)}</span>
+                      </div>
+                      <Markdown>{c.body}</Markdown>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </>
+        )}
       </div>
-    </div>
+    </Modal>
   )
 }

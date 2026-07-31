@@ -1,21 +1,20 @@
 import type { Ticket, TicketActivity } from './types'
 import { relativeTime } from './api'
+import { Button, Key } from './ui'
 
 /**
  * "Rejected" es categoria `indeterminate` en Jira, igual que "In Progress",
- * pero significa lo contrario. Se colorea por nombre antes que por categoria.
+ * pero significa lo contrario. Se distingue por nombre antes que por categoria.
  */
-function statusClasses(ticket: Ticket): string {
-  if (ticket.status.toLowerCase() === 'rejected') {
-    return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
-  }
+function statusBadge(ticket: Ticket): string {
+  if (ticket.status.toLowerCase() === 'rejected') return 'bg-danger-bg text-danger'
   switch (ticket.statusCategory) {
     case 'new':
-      return 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
+      return 'bg-info-bg text-info'
     case 'indeterminate':
-      return 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300'
+      return 'bg-warn-bg text-warn'
     default:
-      return 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+      return 'bg-ok-bg text-ok'
   }
 }
 
@@ -28,18 +27,18 @@ const HIGH_PRIORITIES = new Set(['highest', 'high'])
 function Progress({ activity }: { activity: TicketActivity }) {
   if (activity.worktree) {
     return (
-      <span className="flex min-w-0 items-center gap-1.5 text-xs">
-        <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
-        <span className="text-emerald-700 dark:text-emerald-400">Worktree activo</span>
+      <span className="flex min-w-0 items-center gap-[7px] text-xs text-ok">
+        <span className="size-1.5 shrink-0 rounded-full bg-ok" />
+        <span className="shrink-0">Worktree activo</span>
         {activity.worktree.branch && (
-          <span className="min-w-0 truncate font-mono text-zinc-400">
+          <span className="truncate font-mono text-ink-6">
+            <span className="opacity-50">`</span>
             {activity.worktree.branch}
+            <span className="opacity-50">`</span>
           </span>
         )}
         {activity.worktree.dirty && (
-          <span className="shrink-0 rounded bg-amber-100 px-1 text-amber-900 dark:bg-amber-950 dark:text-amber-300">
-            sin commitear
-          </span>
+          <span className="badge shrink-0 bg-warn-bg font-mono text-warn">sin commitear</span>
         )}
       </span>
     )
@@ -47,8 +46,8 @@ function Progress({ activity }: { activity: TicketActivity }) {
 
   if (activity.lastInitializedAt) {
     return (
-      <span className="flex items-center gap-1.5 text-xs text-zinc-400">
-        <span className="size-1.5 shrink-0 rounded-full bg-zinc-400" />
+      <span className="flex items-center gap-[7px] text-xs text-ink-6">
+        <span className="size-1.5 shrink-0 rounded-full bg-line-strong" />
         Inicializado {relativeTime(activity.lastInitializedAt)} · sin worktree
       </span>
     )
@@ -60,11 +59,13 @@ function Progress({ activity }: { activity: TicketActivity }) {
 export default function TicketCard({
   ticket,
   activity,
+  index,
   onInitialize,
   onDetail,
 }: {
   ticket: Ticket
   activity: TicketActivity | undefined
+  index: number
   onInitialize: (ticket: Ticket) => void
   onDetail: (ticket: Ticket) => void
 }) {
@@ -72,49 +73,45 @@ export default function TicketCard({
   const started = Boolean(activity?.worktree)
 
   return (
-    <article className="group flex flex-col gap-2 border-b border-zinc-100 px-4 py-3 last:border-b-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900/50">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <a
-          href={ticket.url}
-          target="_blank"
-          rel="noreferrer"
-          className="font-mono text-sm font-semibold text-sky-700 hover:underline dark:text-sky-400"
-        >
-          {ticket.key}
+    <article
+      className="rise flex flex-col gap-2 rounded-lg border border-line bg-card px-4 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.45)] hover:border-line-strong"
+      // El escalonado se corta pronto: pasada la primera pantalla ya no aporta
+      // y retrasar filas que el usuario esta mirando es peor que no animarlas.
+      style={{ animationDelay: `${Math.min(index, 12) * 22}ms` }}
+    >
+      <div className="flex flex-wrap items-center gap-x-[9px] gap-y-1.5">
+        <a href={ticket.url} target="_blank" rel="noreferrer" className="hover:underline">
+          <Key>{ticket.key}</Key>
         </a>
-        <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${statusClasses(ticket)}`}>
-          {ticket.status}
-        </span>
-        <span className="text-xs text-zinc-500">{ticket.issueType}</span>
+        <span className={`badge ${statusBadge(ticket)}`}>{ticket.status}</span>
+        <span className="text-[11.5px] text-ink-4">{ticket.issueType}</span>
         {ticket.priority && (
-          <span
-            className={`text-xs ${urgent ? 'font-medium text-orange-600 dark:text-orange-400' : 'text-zinc-400'}`}
-          >
+          <span className={`text-[11.5px] ${urgent ? 'font-medium text-hot' : 'text-ink-6'}`}>
             {ticket.priority}
           </span>
         )}
-        <span className="ml-auto text-xs text-zinc-400">{relativeTime(ticket.updated)}</span>
+        <span className="ml-auto shrink-0 text-[11.5px] text-ink-6">
+          {relativeTime(ticket.updated)}
+        </span>
       </div>
 
-      <p className="text-sm text-zinc-800 dark:text-zinc-200">{ticket.summary}</p>
+      <p className="text-[14.5px] leading-snug font-semibold text-pretty text-ink">
+        <span className="syntax">### </span>
+        {ticket.summary}
+      </p>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3.5 gap-y-2">
         {activity ? <Progress activity={activity} /> : <span />}
-        <div className="flex shrink-0 gap-1.5">
-          <button
-            type="button"
-            onClick={() => onDetail(ticket)}
-            className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:border-zinc-400 hover:bg-white dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
-          >
+        <div className="flex shrink-0 gap-[7px]">
+          <Button variant="quiet" onClick={() => onDetail(ticket)}>
             Detalle
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={started ? 'primary' : 'outline'}
             onClick={() => onInitialize(ticket)}
-            className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:border-zinc-400 hover:bg-white dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
           >
             {started ? 'Retomar' : 'Inicializar'}
-          </button>
+          </Button>
         </div>
       </div>
     </article>
