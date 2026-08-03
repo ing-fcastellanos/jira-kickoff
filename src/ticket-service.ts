@@ -2,19 +2,20 @@ import type { AppConfig, ConfigStore } from './config'
 import { enabledProjectKeys } from './config'
 import { JiraClient, buildAssignedJql, type JiraIssue } from './jira'
 import type { Ticket, TicketsResponse } from './types'
+import { LocalizedError } from './messages'
 
 /** Jira no cambia entre dos pulsaciones de F5; sin esto cada render golpea la API. */
 const CACHE_TTL_MS = 30_000
 
-export class MissingCredentialsError extends Error {
+export class MissingCredentialsError extends LocalizedError {
   constructor() {
-    super('Faltan JIRA_EMAIL o JIRA_API_TOKEN en .env')
+    super('err.missingCredentials', undefined, 503)
   }
 }
 
-export class NoProjectsEnabledError extends Error {
+export class NoProjectsEnabledError extends LocalizedError {
   constructor() {
-    super('No hay ningun proyecto activo. Activa alguno en Opciones.')
+    super('err.noProjects', undefined, 400)
   }
 }
 

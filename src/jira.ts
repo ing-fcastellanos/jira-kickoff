@@ -6,14 +6,16 @@
  * no por indice.
  */
 
-export class JiraError extends Error {
-  constructor(
-    message: string,
-    readonly status?: number,
-  ) {
-    super(message)
+import { LocalizedError, RawError, type MessageKey, type Vars } from './messages'
+
+export class JiraError extends LocalizedError {
+  constructor(key: MessageKey, vars?: Vars, httpStatus = 502) {
+    super(key, vars, httpStatus)
   }
 }
+
+/** El texto lo escribe Jira, asi que se muestra tal cual. */
+export class JiraPlainError extends RawError {}
 
 export interface JiraIssue {
   key: string
@@ -111,15 +113,23 @@ export class JiraClient {
         },
       })
     } catch (err) {
-      throw new JiraError(`No pude alcanzar ${this.creds.site}: ${(err as Error).message}`)
+      throw new JiraError('err.unreachable', {
+        site: this.creds.site,
+        detail: (err as Error).message,
+      })
     }
 
     if (res.status === 401) {
-      throw new JiraError('Jira rechazo las credenciales. Revisa JIRA_EMAIL y JIRA_API_TOKEN.', 401)
+      // Neutro a proposito: el mismo error se ve en el asistente, donde el
+      // usuario acaba de teclear los datos, y en el panel ya configurado.
+      throw new JiraError('err.credentials', undefined, 401)
     }
     if (!res.ok) {
-      const body = await res.text()
-      throw new JiraError(extractJiraMessage(body) ?? `Jira respondio ${res.status}`, res.status)
+      // Si Jira explica el fallo, su texto gana: es mas concreto que cualquier
+      // cosa que podamos decir aqui, aunque venga en ingles.
+      const detail = extractJiraMessage(await res.text())
+      if (detail) throw new JiraPlainError(detail, res.status)
+      throw new JiraError('err.jiraStatus', { status: res.status }, res.status)
     }
 
     return (await res.json()) as T

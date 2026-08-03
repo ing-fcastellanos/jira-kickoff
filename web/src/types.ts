@@ -43,6 +43,15 @@ export interface Placeholder {
   description: string
 }
 
+export interface SetupState {
+  configured: boolean
+  hasCredentials: boolean
+  email: string | null
+  site: string
+  projectCount: number
+  paths: { config: string; credentials: string }
+}
+
 export interface SettingsResponse {
   config: FileConfig
   placeholders: Placeholder[]

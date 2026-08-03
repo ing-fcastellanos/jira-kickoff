@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { LocalizedError, RawError } from './messages'
 
 const run = promisify(execFile)
 
@@ -7,7 +8,8 @@ const run = promisify(execFile)
 const REMOTE_TIMEOUT_MS = 20_000
 const LOCAL_TIMEOUT_MS = 5_000
 
-export class GitError extends Error {}
+/** Lo que sale de git es diagnostico real; se muestra sin traducir. */
+export class GitError extends RawError {}
 
 async function git(repo: string, args: string[], timeout: number): Promise<string> {
   try {
@@ -20,7 +22,10 @@ async function git(repo: string, args: string[], timeout: number): Promise<strin
   } catch (err) {
     const e = err as { stderr?: string; message: string; killed?: boolean }
     if (e.killed) {
-      throw new GitError(`\`git ${args[0]}\` excedio ${timeout / 1000}s y fue cancelado.`)
+      throw new LocalizedError('err.gitTimeout', {
+        command: args[0] ?? 'git',
+        seconds: timeout / 1000,
+      })
     }
     throw new GitError(e.stderr?.trim() || e.message)
   }

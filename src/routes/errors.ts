@@ -1,24 +1,26 @@
 import type { FastifyReply } from 'fastify'
-import { JiraError } from '../jira'
-import { GitError } from '../git'
-import { MissingCredentialsError, NoProjectsEnabledError } from '../ticket-service'
+import { LocalizedError, langFrom, message, type MessageKey, type Vars } from '../messages'
+
+/** Idioma pedido por el navegador en esta peticion. */
+export function langOf(reply: FastifyReply) {
+  return langFrom(reply.request.headers['accept-language'])
+}
+
+/** Mensaje suelto ya traducido, para los fallos que no viajan como excepcion. */
+export function say(reply: FastifyReply, key: MessageKey, vars?: Vars): string {
+  return message(langOf(reply), key, vars)
+}
 
 /**
- * Traduce los fallos conocidos a una respuesta con texto ya legible.
- * Lo que no reconoce se relanza para que lo tome el handler global.
+ * Traduce los fallos conocidos y responde con el texto ya legible.
+ *
+ * La traduccion ocurre aqui y no donde se lanza el error: git, Jira y la
+ * validacion no saben nada de la peticion, y el idioma solo se conoce en el
+ * borde HTTP. Lo que no reconoce se relanza para el handler global.
  */
 export function replyWithError(reply: FastifyReply, err: unknown, extra?: Record<string, unknown>) {
-  if (err instanceof MissingCredentialsError) {
-    return reply.status(503).send({ error: err.message, ...extra })
-  }
-  if (err instanceof NoProjectsEnabledError) {
-    return reply.status(400).send({ error: err.message, ...extra })
-  }
-  if (err instanceof JiraError) {
-    return reply.status(err.status === 401 ? 401 : 502).send({ error: err.message, ...extra })
-  }
-  if (err instanceof GitError) {
-    return reply.status(502).send({ error: err.message, ...extra })
+  if (err instanceof LocalizedError) {
+    return reply.status(err.status).send({ error: err.localized(langOf(reply)), ...extra })
   }
   throw err
 }

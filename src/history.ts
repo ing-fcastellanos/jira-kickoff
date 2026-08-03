@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { z } from 'zod'
+import { configDir } from './paths'
 
 const entrySchema = z.object({
   ticketKey: z.string(),
@@ -44,8 +45,10 @@ export class HistoryStore {
     this.entries = entries
   }
 
-  static load(rootDir: string): HistoryStore {
-    const path = resolve(rootDir, 'history.json')
+  static load(): HistoryStore {
+    // Junto a la configuracion, no junto al codigo: con `npx` el paquete vive
+    // en una cache temporal y el historial se perderia en cada ejecucion.
+    const path = join(configDir(), 'history.json')
     if (!existsSync(path)) return new HistoryStore(path, [])
 
     try {
@@ -60,6 +63,7 @@ export class HistoryStore {
   record(entry: HistoryEntry): void {
     this.entries = [entry, ...this.entries].slice(0, MAX_ENTRIES)
 
+    mkdirSync(configDir(), { recursive: true })
     const tmp = `${this.path}.tmp`
     writeFileSync(tmp, `${JSON.stringify({ entries: this.entries }, null, 2)}\n`, 'utf8')
     renameSync(tmp, this.path)

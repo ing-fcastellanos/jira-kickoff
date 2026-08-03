@@ -3,16 +3,27 @@ import type { FileConfig, Placeholder, SettingsResponse } from './types'
 import { getJson, postJson, putJson } from './api'
 import { applyTheme, readTheme, type Theme } from './theme'
 import { Button, Field, Heading, Key, Modal, Note, inputClass, monoInputClass } from './ui'
+import { useT } from './LocaleProvider'
+import { LOCALES, LOCALE_NAMES, type Key as MsgKey, type Locale } from './i18n'
 
 type Load =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready'; data: SettingsResponse }
 
-const THEMES: { value: Theme; label: string }[] = [
-  { value: 'light', label: 'Claro' },
-  { value: 'dark', label: 'Oscuro' },
-  { value: 'system', label: 'Según el sistema' },
+const THEMES: { value: Theme; key: MsgKey }[] = [
+  { value: 'light', key: 'set.themeLight' },
+  { value: 'dark', key: 'set.themeDark' },
+  { value: 'system', key: 'set.themeSystem' },
+]
+
+const PERMISSION_MODES: { value: FileConfig['launch']['permissionMode']; key: MsgKey }[] = [
+  { value: 'inherit', key: 'set.permInherit' },
+  { value: 'default', key: 'set.permDefault' },
+  { value: 'plan', key: 'set.permPlan' },
+  { value: 'acceptEdits', key: 'set.permAcceptEdits' },
+  { value: 'auto', key: 'set.permAuto' },
+  { value: 'bypassPermissions', key: 'set.permBypass' },
 ]
 
 function Section({ children }: { children: React.ReactNode }) {
@@ -24,9 +35,10 @@ function Section({ children }: { children: React.ReactNode }) {
 }
 
 function Tokens({ items }: { items: Placeholder[] }) {
+  const { t } = useT()
   return (
     <p className="text-[11.5px] text-ink-5">
-      Disponibles:{' '}
+      {t('set.available')}{' '}
       {items.map((p, i) => (
         <span key={p.token}>
           {i > 0 && ', '}
@@ -53,6 +65,7 @@ function StringList({
   addLabel: string
   mono?: boolean
 }) {
+  const { t } = useT()
   return (
     <div className="flex flex-col gap-2">
       {values.map((value, i) => (
@@ -65,7 +78,7 @@ function StringList({
           />
           <button
             type="button"
-            aria-label="Quitar"
+            aria-label={t('common.remove')}
             onClick={() => onChange(values.filter((_, j) => j !== i))}
             className="shrink-0 cursor-pointer rounded-md border border-line bg-panel px-3 font-mono text-xs text-ink-5 hover:border-danger-line hover:bg-danger-bg hover:text-danger"
           >
@@ -87,6 +100,7 @@ export default function SettingsDialog({
   onClose: () => void
   onSaved: () => void
 }) {
+  const { t, locale, setLocale } = useT()
   const [load, setLoad] = useState<Load>({ status: 'loading' })
   const [draft, setDraft] = useState<FileConfig | null>(null)
   const [theme, setTheme] = useState<Theme>(() => readTheme())
@@ -165,19 +179,12 @@ export default function SettingsDialog({
 
   return (
     <Modal
-      label="Opciones"
+      label={t('set.title')}
       maxWidth="max-w-[700px]"
       onClose={onClose}
       title={
-        <Heading
-          level={2}
-          hint={
-            <>
-              Se guardan en <span className="font-mono text-ok">`config.json`</span>, salvo el tema.
-            </>
-          }
-        >
-          Opciones
+        <Heading level={2} hint={t('set.subtitle', { file: 'config.json' })}>
+          {t('set.title')}
         </Heading>
       }
       footer={
@@ -185,19 +192,19 @@ export default function SettingsDialog({
           {saveError && (
             <p className="mr-auto text-[11.5px] whitespace-pre-line text-danger">{saveError}</p>
           )}
-          {saved && !saveError && <p className="mr-auto text-[11.5px] text-ok">Guardado ✓</p>}
+          {saved && !saveError && <p className="mr-auto text-[11.5px] text-ok">{t('common.saved')}</p>}
           <Button variant="ghost" onClick={onClose}>
-            Cerrar
+            {t('common.close')}
           </Button>
           <Button variant="primary" onClick={() => void save()} disabled={!draft || saving}>
-            {saving ? 'Guardando…' : 'Guardar'}
+            {saving ? t('common.saving') : t('common.save')}
           </Button>
         </>
       }
     >
       <div className="max-h-[72vh] overflow-y-auto px-4.5">
         {load.status === 'loading' && (
-          <p className="py-4 text-[12.5px] text-ink-5">Cargando configuración…</p>
+          <p className="py-4 text-[12.5px] text-ink-5">{t('set.loading')}</p>
         )}
 
         {load.status === 'error' && (
@@ -209,18 +216,34 @@ export default function SettingsDialog({
         {draft && data && (
           <>
             <Section>
-              <Heading hint="Se guarda en este navegador, no en config.json.">Apariencia</Heading>
+              <Heading hint={t('set.appearanceHint')}>{t('set.appearance')}</Heading>
+
+              <div className="flex flex-col gap-2">
+                <span className="text-[11.5px] font-semibold text-ink-4">{t('set.language')}</span>
+                <div className="flex flex-wrap gap-2">
+                  {(Object.keys(LOCALES) as Locale[]).map((l) => (
+                    <Button
+                      key={l}
+                      variant={locale === l ? 'selected' : 'default'}
+                      onClick={() => setLocale(l)}
+                    >
+                      {LOCALE_NAMES[l]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex flex-wrap gap-2">
-                {THEMES.map((t) => (
+                {THEMES.map((x) => (
                   <Button
-                    key={t.value}
-                    variant={theme === t.value ? 'selected' : 'default'}
+                    key={x.value}
+                    variant={theme === x.value ? 'selected' : 'default'}
                     onClick={() => {
-                      setTheme(t.value)
-                      applyTheme(t.value)
+                      setTheme(x.value)
+                      applyTheme(x.value)
                     }}
                   >
-                    {t.label}
+                    {t(x.key)}
                   </Button>
                 ))}
               </div>
@@ -229,45 +252,38 @@ export default function SettingsDialog({
             <Section>
               <Heading
                 hint={
-                  data.credentials.configured ? (
-                    <>
-                      Conectado como{' '}
-                      <span className="font-mono text-ok">{data.credentials.email}</span>. El token
-                      vive en <span className="font-mono">.env</span> y no se edita aquí.
-                    </>
-                  ) : (
-                    'Faltan JIRA_EMAIL y JIRA_API_TOKEN en .env.'
-                  )
+                  data.credentials.configured
+                    ? t('set.jiraConnected', { email: data.credentials.email ?? '' })
+                    : t('set.jiraMissing')
                 }
               >
-                Jira
+                {t('set.jira')}
               </Heading>
 
-              <Field label="Sitio">
+              <Field label={t('set.site')}>
                 <input
                   value={draft.jira.site}
                   onChange={(e) => patch((d) => void (d.jira.site = e.target.value))}
-                  placeholder="https://tu-dominio.atlassian.net"
+                  placeholder="https://your-domain.atlassian.net"
                   spellCheck={false}
                   className={inputClass}
                 />
               </Field>
 
               <div className="flex flex-col gap-2">
-                <span className="text-[11.5px] font-semibold text-ink-4">Status a incluir</span>
+                <span className="text-[11.5px] font-semibold text-ink-4">{t('set.statuses')}</span>
                 <StringList
                   values={draft.jira.statuses}
                   onChange={(next) => patch((d) => void (d.jira.statuses = next))}
                   placeholder="In Progress"
-                  addLabel="Añadir status"
+                  addLabel={t('set.addStatus')}
                 />
                 <p className="text-[11.5px] leading-relaxed text-pretty text-ink-5">
-                  Los nombres exactos de tu Jira. Se enumeran uno a uno a propósito: filtrar por
-                  categoría mezcla status que significan cosas distintas.
+                  {t('set.statusesHint')}
                 </p>
               </div>
 
-              <Field label="Filtro JQL adicional (opcional)">
+              <Field label={t('set.extraJql')}>
                 <input
                   value={draft.jira.extraJql}
                   onChange={(e) => patch((d) => void (d.jira.extraJql = e.target.value))}
@@ -279,12 +295,10 @@ export default function SettingsDialog({
             </Section>
 
             <Section>
-              <Heading hint="Cada clave de Jira apuntando al repositorio local donde se creará el worktree.">
-                Proyectos
-              </Heading>
+              <Heading hint={t('set.projectsHint')}>{t('set.projects')}</Heading>
 
               {projectKeys.length === 0 && (
-                <p className="text-[12.5px] text-ink-5">Todavía no hay ninguno.</p>
+                <p className="text-[12.5px] text-ink-5">{t('set.noProjects')}</p>
               )}
 
               {projectKeys.map((key) => {
@@ -304,20 +318,20 @@ export default function SettingsDialog({
                           onChange={(e) => {
                             const on = e.target.checked
                             patch((d) => {
-                              const t = d.projects[key]
-                              if (t) t.enabled = on
+                              const x = d.projects[key]
+                              if (x) x.enabled = on
                             })
                           }}
                           className="size-3.5 accent-[var(--accent)]"
                         />
-                        Activo
+                        {t('set.active')}
                       </label>
                       <button
                         type="button"
                         onClick={() => patch((d) => void delete d.projects[key])}
                         className="ml-auto cursor-pointer rounded-md border border-line bg-control px-2.5 py-1 text-[11.5px] text-ink-5 hover:border-danger-line hover:bg-danger-bg hover:text-danger"
                       >
-                        Quitar
+                        {t('common.remove')}
                       </button>
                     </div>
                     <div className="grid gap-2 sm:grid-cols-[2fr_1fr]">
@@ -326,11 +340,11 @@ export default function SettingsDialog({
                         onChange={(e) => {
                           const v = e.target.value
                           patch((d) => {
-                            const t = d.projects[key]
-                            if (t) t.repo = v
+                            const x = d.projects[key]
+                            if (x) x.repo = v
                           })
                         }}
-                        placeholder="/ruta/al/repositorio"
+                        placeholder={t('set.repoPlaceholder')}
                         spellCheck={false}
                         className={monoInputClass}
                       />
@@ -339,8 +353,8 @@ export default function SettingsDialog({
                         onChange={(e) => {
                           const v = e.target.value
                           patch((d) => {
-                            const t = d.projects[key]
-                            if (t) t.baseBranch = v
+                            const x = d.projects[key]
+                            if (x) x.baseBranch = v
                           })
                         }}
                         placeholder="main"
@@ -356,7 +370,7 @@ export default function SettingsDialog({
                 <input
                   value={newKey}
                   onChange={(e) => setNewKey(e.target.value.toUpperCase())}
-                  placeholder="Clave del proyecto, p. ej. ABC"
+                  placeholder={t('set.projectKeyPlaceholder')}
                   spellCheck={false}
                   className={monoInputClass}
                 />
@@ -371,15 +385,15 @@ export default function SettingsDialog({
                     setNewKey('')
                   }}
                 >
-                  Añadir
+                  {t('common.add')}
                 </Button>
               </div>
             </Section>
 
             <Section>
-              <Heading>Rama y worktree</Heading>
+              <Heading>{t('set.branchAndWorktree')}</Heading>
 
-              <Field label="Patrón del nombre de rama">
+              <Field label={t('set.branchPattern')}>
                 <input
                   value={draft.branch.pattern}
                   onChange={(e) => patch((d) => void (d.branch.pattern = e.target.value))}
@@ -390,12 +404,12 @@ export default function SettingsDialog({
               <Tokens items={data.branchPlaceholders} />
               {preview && (
                 <p className="text-[11.5px] text-ink-5">
-                  Ejemplo: <span className="font-mono text-ink-2">{preview}</span>
+                  {t('set.example')} <span className="font-mono text-ink-2">{preview}</span>
                 </p>
               )}
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Largo máximo del slug">
+                <Field label={t('set.slugMax')}>
                   <input
                     type="number"
                     min={1}
@@ -406,7 +420,7 @@ export default function SettingsDialog({
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Carpeta de worktrees (dentro del repo)">
+                <Field label={t('set.worktreeDir')}>
                   <input
                     value={draft.worktrees.dir}
                     onChange={(e) => patch((d) => void (d.worktrees.dir = e.target.value))}
@@ -427,31 +441,25 @@ export default function SettingsDialog({
                   className="mt-0.5 size-3.5 shrink-0 accent-[var(--accent)]"
                 />
                 <span className="flex flex-col gap-1">
-                  <span className="text-[12.5px] text-ink-2">
-                    Apuntar <span className="font-mono text-[11.5px] text-ok">origin/HEAD</span> a la
-                    rama base
-                  </span>
+                  <span className="text-[12.5px] text-ink-2">{t('set.alignHead')}</span>
                   <span className="text-[11.5px] leading-relaxed text-ink-5">
-                    Claude Code deduce la rama principal de esa referencia, no de la rama base
-                    configurada aquí. Es un cambio local del clon; nunca se sube.
+                    {t('set.alignHeadHint')}
                   </span>
                 </span>
               </label>
             </Section>
 
             <Section>
-              <Heading hint="El botón «Abrir en …» de la lista de worktrees. Debe estar en el PATH.">
-                Editor
-              </Heading>
+              <Heading hint={t('set.editorHint')}>{t('set.editor')}</Heading>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Nombre en el botón">
+                <Field label={t('set.editorLabel')}>
                   <input
                     value={draft.editor.label}
                     onChange={(e) => patch((d) => void (d.editor.label = e.target.value))}
                     className={inputClass}
                   />
                 </Field>
-                <Field label="Comando">
+                <Field label={t('set.editorCommand')}>
                   <input
                     value={draft.editor.command}
                     onChange={(e) => patch((d) => void (d.editor.command = e.target.value))}
@@ -461,26 +469,23 @@ export default function SettingsDialog({
                 </Field>
               </div>
               <div className="flex flex-col gap-2">
-                <span className="text-[11.5px] font-semibold text-ink-4">Argumentos</span>
+                <span className="text-[11.5px] font-semibold text-ink-4">{t('set.editorArgs')}</span>
                 <StringList
                   mono
                   values={draft.editor.args}
                   onChange={(next) => patch((d) => void (d.editor.args = next))}
                   placeholder="{{path}}"
-                  addLabel="Añadir argumento"
+                  addLabel={t('set.addArg')}
                 />
                 <p className="text-[11.5px] text-ink-5">
-                  <span className="font-mono text-ok">{'{{path}}'}</span> se sustituye por la ruta
-                  del worktree.
+                  {t('set.editorArgsHint', { token: '{{path}}' })}
                 </p>
               </div>
             </Section>
 
             <Section>
-              <Heading hint="La base y las líneas fijas. Antes de enviar siempre puedes editarlo.">
-                Prompt inicial
-              </Heading>
-              <Field label="Comando base">
+              <Heading hint={t('set.promptHint')}>{t('set.prompt')}</Heading>
+              <Field label={t('set.promptBase')}>
                 <input
                   value={draft.prompt.base}
                   onChange={(e) => patch((d) => void (d.prompt.base = e.target.value))}
@@ -489,26 +494,28 @@ export default function SettingsDialog({
                 />
               </Field>
               <div className="flex flex-col gap-2">
-                <span className="text-[11.5px] font-semibold text-ink-4">Líneas añadidas</span>
+                <span className="text-[11.5px] font-semibold text-ink-4">
+                  {t('set.promptAdditions')}
+                </span>
                 <StringList
                   values={draft.prompt.additions}
                   onChange={(next) => patch((d) => void (d.prompt.additions = next))}
-                  placeholder="Revisa los comentarios del ticket antes de proponer nada."
-                  addLabel="Añadir línea"
+                  placeholder=""
+                  addLabel={t('set.addLine')}
                 />
               </div>
               <Tokens items={data.placeholders} />
             </Section>
 
             <Section>
-              <Heading>Al inicializar</Heading>
+              <Heading>{t('set.onInit')}</Heading>
               <div className="flex flex-col gap-2">
                 {(
                   [
-                    ['open', 'Crear el worktree y abrir la sesión'],
-                    ['clipboard', 'Solo crear el worktree y copiar el prompt'],
+                    ['open', 'set.launchOpen'],
+                    ['clipboard', 'set.launchClipboard'],
                   ] as const
-                ).map(([mode, label]) => (
+                ).map(([mode, key]) => (
                   <label key={mode} className="flex cursor-pointer items-start gap-2.5">
                     <input
                       type="radio"
@@ -517,26 +524,13 @@ export default function SettingsDialog({
                       onChange={() => patch((d) => void (d.launch.mode = mode))}
                       className="mt-0.5 size-3.5 shrink-0 accent-[var(--accent)]"
                     />
-                    <span className="text-[12.5px] text-ink-2">{label}</span>
+                    <span className="text-[12.5px] text-ink-2">{t(key)}</span>
                   </label>
                 ))}
-                <p className="text-[11.5px] leading-relaxed text-ink-5">
-                  El deep link es interfaz interna de la app y puede romperse en una actualización.
-                  La segunda opción es la salida cuando eso pase.
-                </p>
+                <p className="text-[11.5px] leading-relaxed text-ink-5">{t('set.launchHint')}</p>
               </div>
 
-              <Field
-                label="Modo de permisos de la sesión"
-                hint={
-                  <>
-                    Se escribe en el{' '}
-                    <span className="font-mono">.claude/settings.local.json</span> del worktree.
-                    Tiene que ser ese archivo y no el del repo: los modos elevados que vienen del
-                    tier de proyecto la app los descarta en silencio.
-                  </>
-                }
-              >
+              <Field label={t('set.permissionMode')} hint={t('set.permissionHint')}>
                 <select
                   value={draft.launch.permissionMode}
                   onChange={(e) => {
@@ -545,12 +539,11 @@ export default function SettingsDialog({
                   }}
                   className={inputClass}
                 >
-                  <option value="inherit">Heredar de mis settings</option>
-                  <option value="default">Preguntar (default)</option>
-                  <option value="plan">Plan</option>
-                  <option value="acceptEdits">Aceptar ediciones</option>
-                  <option value="auto">Auto</option>
-                  <option value="bypassPermissions">Saltar permisos</option>
+                  {PERMISSION_MODES.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {t(m.key)}
+                    </option>
+                  ))}
                 </select>
               </Field>
             </Section>

@@ -1,39 +1,66 @@
 {
-  "name": "jira-ticket-workflow",
+  "name": "jira-kickoff",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
-  "description": "Dashboard local de tickets de Jira que inicializa sesiones de Claude Code desktop",
+  "description": "Panel local que lleva un ticket de Jira a una sesión de Claude Code: crea la rama, el worktree y abre la sesión con el prompt precargado",
+  "license": "MIT",
+  "author": "ing-fcastellanos",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ing-fcastellanos/jira-kickoff.git"
+  },
+  "homepage": "https://github.com/ing-fcastellanos/jira-kickoff#readme",
+  "keywords": [
+    "jira",
+    "claude-code",
+    "git-worktree",
+    "cli",
+    "dashboard"
+  ],
+  "bin": {
+    "jira-kickoff": "dist/server/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
     "dev:api": "tsx watch src/server.ts",
     "dev:web": "vite",
-    "build": "vite build",
-    "start": "tsx src/server.ts",
+    "build": "npm run build:web && npm run build:server",
+    "build:web": "vite build",
+    "build:server": "node scripts/build-server.mjs",
+    "start": "node dist/server/index.js",
     "test": "tsx --test src/**/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@fastify/static": "^8.0.4",
-    "@fontsource/ibm-plex-mono": "^5.3.0",
-    "@fontsource/ibm-plex-sans": "^5.3.0",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1",
-    "tsx": "^4.19.2",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.2",
+    "esbuild": "^0.25.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vite": "^6.0.7"
   }

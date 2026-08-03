@@ -1,10 +1,11 @@
 import { existsSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import Fastify from 'fastify'
-import type { FastifyError } from 'fastify'
+import type { FastifyError, FastifyInstance } from 'fastify'
 import fastifyStatic from '@fastify/static'
 import { ConfigError, ConfigStore } from './config'
+import { configPath, packageRoot } from './paths'
+import { openUrl } from './launcher'
 import { healthRoutes } from './routes/health'
 import { ticketRoutes } from './routes/tickets'
 import { branchRoutes } from './routes/branches'
@@ -13,16 +14,36 @@ import { worktreeRoutes } from './routes/worktrees'
 import { settingsRoutes } from './routes/settings'
 import { activityRoutes } from './routes/activity'
 import { detailRoutes } from './routes/detail'
-import { HistoryStore } from './history'
+import { setupRoutes } from './routes/setup'
 import { TicketService } from './ticket-service'
+import { HistoryStore } from './history'
 
-const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const rootDir = packageRoot()
+
+/** Puertos a probar si el preferido esta ocupado, antes de rendirse. */
+const PORT_ATTEMPTS = 20
+
+async function listen(app: FastifyInstance, preferred: number): Promise<number> {
+  const host = '127.0.0.1'
+  for (let port = preferred; port < preferred + PORT_ATTEMPTS; port++) {
+    try {
+      await app.listen({ port, host })
+      return port
+    } catch (err) {
+      // Otra copia del panel, o cualquier otro proceso: se prueba el siguiente.
+      if ((err as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw err
+    }
+  }
+  throw new Error(
+    `Los puertos ${preferred}–${preferred + PORT_ATTEMPTS - 1} estan ocupados. ` +
+      `Libera uno o define PORT.`,
+  )
+}
 
 async function main(): Promise<void> {
   // La pantalla de opciones escribe config.json, asi que la configuracion vive
   // en un store recargable y no en un objeto leido una sola vez al arrancar.
   const store = ConfigStore.load(rootDir)
-  const config = store.get()
   const app = Fastify({ logger: false })
 
   app.addHook('onResponse', (req, reply, done) => {
@@ -39,8 +60,9 @@ async function main(): Promise<void> {
 
   // Una sola instancia: la cache de tickets se comparte entre rutas.
   const tickets = new TicketService(store)
-  const history = HistoryStore.load(rootDir)
+  const history = HistoryStore.load()
 
+  await app.register(setupRoutes, { store })
   await app.register(healthRoutes, { store })
   await app.register(ticketRoutes, { tickets })
   await app.register(branchRoutes, { store, tickets })
@@ -50,8 +72,6 @@ async function main(): Promise<void> {
   await app.register(activityRoutes, { store, history })
   await app.register(detailRoutes, { store })
 
-  // La UI compilada solo existe despues de `npm run build`. En desarrollo la
-  // sirve Vite en :5100 y proxea /api hasta aca, asi que su ausencia es normal.
   const webDir = join(rootDir, 'dist', 'web')
   const webBuilt = existsSync(join(webDir, 'index.html'))
 
@@ -68,20 +88,30 @@ async function main(): Promise<void> {
 
   // Solo loopback: este servicio ejecuta git y abre sesiones en tu maquina,
   // no tiene por que ser alcanzable desde la red.
-  const host = '127.0.0.1'
-  await app.listen({ port: config.port, host })
+  const port = await listen(app, store.get().port)
+  const url = `http://127.0.0.1:${port}`
+  const config = store.get()
 
-  const projects = Object.keys(config.projects).join(', ')
-  console.log(`\n  jira-ticket-workflow`)
-  console.log(`  API        http://${host}:${config.port}/api/health`)
-  console.log(`  UI         ${webBuilt ? `http://${host}:${config.port}` : 'http://127.0.0.1:5100 (vite dev)'}`)
-  console.log(`  Proyectos  ${projects}`)
-  console.log(`  Jira       ${config.jira.site}\n`)
+  console.log(`\n  jira-kickoff`)
+  console.log(`  ${webBuilt ? url : `${url} (API) · http://127.0.0.1:5100 (vite dev)`}`)
+  console.log(`  Configuración: ${configPath()}`)
+  if (!config.configured) {
+    console.log(`  Sin configurar todavía: el asistente se abre en el navegador.`)
+  }
+  console.log()
+
+  // Abrir el navegador es el punto del `npx`: que el primer arranque no exija
+  // leer la salida de la terminal para saber a donde ir.
+  if (webBuilt && process.env.JTW_NO_OPEN !== '1' && !process.argv.includes('--no-open')) {
+    openUrl(url).catch(() => {
+      console.log(`  Abre ${url} en tu navegador.`)
+    })
+  }
 }
 
 main().catch((err: unknown) => {
   if (err instanceof ConfigError) {
-    console.error(`\n  Configuracion invalida\n\n${err.message}\n`)
+    console.error(`\n  Configuración inválida\n\n${err.message}\n`)
   } else {
     console.error('\n  El servidor no pudo arrancar:\n', err)
   }

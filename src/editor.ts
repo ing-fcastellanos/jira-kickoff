@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process'
 import { extname } from 'node:path'
+import { LocalizedError, RawError } from './messages'
 
-export class EditorError extends Error {}
+export class EditorError extends LocalizedError {}
 
 /** Los lanzadores de editores en Windows son scripts (`code.cmd`), no ejecutables. */
 const WINDOWS_SCRIPTS = new Set(['.cmd', '.bat'])
@@ -38,18 +39,14 @@ export function openInEditor(command: string, args: string[], path: string): Pro
     })
 
     child.once('error', (err: Error) => {
-      reject(new EditorError(`No pude ejecutar "${command}": ${err.message}`))
+      reject(new EditorError('err.editorFailed', { command, detail: err.message }, 502))
     })
 
     child.once('close', (code) => {
       if (code === 0) resolve()
-      else {
-        reject(
-          new EditorError(
-            stderr.trim() || `"${command}" termino con codigo ${code ?? 'null'}. ¿Esta en el PATH?`,
-          ),
-        )
-      }
+      // El stderr del editor, si lo hay, dice mas que cualquier texto nuestro.
+      else if (stderr.trim()) reject(new RawError(stderr.trim()))
+      else reject(new EditorError('err.editorExit', { command, code: code ?? 'null' }, 502))
     })
   })
 }

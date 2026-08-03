@@ -28,22 +28,48 @@ así que no tiene por qué ser alcanzable desde la red.
 ## Puesta en marcha
 
 ```bash
+npx jira-kickoff
+```
+
+Eso es todo. Abre el navegador solo y, si es la primera vez, te lleva a un asistente de
+dos pasos: conectar con Jira y añadir un proyecto. El
+[API token](https://id.atlassian.com/manage-profile/security/api-tokens) se comprueba
+contra Jira **antes** de guardarlo, para que un token mal pegado se vea en el momento y
+no como una lista vacía diez minutos después.
+
+GitHub no necesita token: las ramas remotas se leen con `git ls-remote`, que usa las
+credenciales que git ya tiene configuradas.
+
+### Dónde vive tu configuración
+
+Con `npx` el paquete corre desde una caché temporal que npm puede borrar, así que nada
+se guarda junto al código:
+
+| Archivo | Qué contiene |
+|---|---|
+| `config.json` | Proyectos, prompt, patrón de rama, preferencias |
+| `credentials.json` | Solo el token de Jira, con permisos `0600` |
+| `history.json` | Registro de inicializaciones |
+
+En `%APPDATA%\jira-kickoff` (Windows), `~/Library/Application Support/jira-kickoff` (macOS)
+o `$XDG_CONFIG_HOME/…` (Linux). El token va **aparte** a propósito: `config.json` se
+comparte, se pega en un issue o sale en una captura, y no debe viajar con él.
+
+`JIRA_EMAIL` y `JIRA_API_TOKEN` en el entorno ganan al archivo, que es lo que permite
+ejecutarlo en CI o en un contenedor sin dejar el token escrito en disco.
+
+### Desarrollo
+
+```bash
+git clone https://github.com/ing-fcastellanos/jira-kickoff
+cd jira-kickoff
 npm install
-cp .env.example .env
-cp config.example.json config.json
 npm run dev
 ```
 
-En `.env` va el único secreto: el
-[API token de Jira](https://id.atlassian.com/manage-profile/security/api-tokens).
-GitHub no necesita token — las ramas remotas se leen con `git ls-remote`, que usa las
-credenciales que git ya tiene configuradas.
-
-`config.json` no se versiona porque lleva rutas absolutas de tu máquina. Puedes
-editarlo a mano o, más cómodo, dejarlo casi vacío y rellenarlo desde **Opciones** en la
-propia interfaz.
-
-La UI queda en <http://127.0.0.1:5100> y la API en <http://127.0.0.1:8787>.
+La UI queda en <http://127.0.0.1:5100> y la API en <http://127.0.0.1:8787>. Para trabajar
+sin tocar tu configuración real, define `JTW_CONFIG_DIR` apuntando a una carpeta
+desechable.
 
 ## Opciones
 
@@ -278,7 +304,7 @@ nombre en la interfaz.
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | API con recarga en caliente + Vite, en paralelo |
-| `npm run build` | Compila la UI a `dist/web` |
-| `npm start` | Levanta la API sirviendo la UI compilada en un solo puerto |
+| `npm run build` | Compila la UI a `dist/web` y empaqueta el servidor en `dist/server` |
+| `npm start` | Levanta el servidor compilado sirviendo la UI en un solo puerto |
 | `npm test` | Tests de la lógica pura (nombres de rama) |
 | `npm run typecheck` | TypeScript sobre servidor y UI |

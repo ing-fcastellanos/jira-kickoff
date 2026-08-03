@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { LocaleProvider } from './LocaleProvider'
 import './index.css'
 import { applyTheme, readTheme } from './theme'
 
@@ -12,6 +13,8 @@ if (!container) throw new Error('Falta #root en index.html')
 
 createRoot(container).render(
   <StrictMode>
-    <App />
+    <LocaleProvider>
+      <App />
+    </LocaleProvider>
   </StrictMode>,
 )

@@ -1,23 +1,37 @@
+import { translate, type Key, type Locale } from './i18n'
+
+/*
+ * El cliente HTTP no es un componente, asi que no puede usar el hook de idioma.
+ * En vez de arrastrar el locale por cada llamada, el proveedor registra aqui el
+ * idioma activo: las dos cadenas que este modulo produce salen traducidas sin
+ * que ninguna firma cambie.
+ */
+let locale: Locale = 'en'
+export function setApiLocale(next: Locale): void {
+  locale = next
+}
+const t = (key: Key, vars?: Record<string, string | number>) => translate(locale, key, vars)
+
+/**
+ * El idioma elegido en Opciones viaja en cada peticion.
+ *
+ * Sin esto el servidor responderia en el idioma del navegador, que puede no ser
+ * el que el usuario escogio: elegir espanol con Chrome en ingles daria una
+ * interfaz en espanol con errores en ingles.
+ */
+function headers(extra?: Record<string, string>): Record<string, string> {
+  return { 'Accept-Language': locale, ...extra }
+}
+
 /** El servidor devuelve `{ error }` en los fallos; ese texto ya viene redactado para leerse. */
 export async function getJson<T>(url: string): Promise<T> {
   let res: Response
   try {
-    res = await fetch(url)
+    res = await fetch(url, { headers: headers() })
   } catch {
-    throw new Error('No pude hablar con el servicio local. ¿Está corriendo `npm run dev`?')
+    throw new Error(t('common.noConnection'))
   }
-
-  const body: unknown = await res.json().catch(() => null)
-
-  if (!res.ok) {
-    const message =
-      body && typeof body === 'object' && 'error' in body
-        ? String((body as { error: unknown }).error)
-        : `El servidor respondió ${res.status}`
-    throw new Error(message)
-  }
-
-  return body as T
+  return unwrap<T>(res)
 }
 
 export async function postJson<T>(url: string, payload: unknown): Promise<T> {
@@ -33,44 +47,25 @@ async function sendJson<T>(method: string, url: string, payload: unknown): Promi
   try {
     res = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: headers({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(payload),
     })
   } catch {
-    throw new Error('No pude hablar con el servicio local. ¿Está corriendo `npm run dev`?')
+    throw new Error(t('common.noConnection'))
   }
+  return unwrap<T>(res)
+}
 
+async function unwrap<T>(res: Response): Promise<T> {
   const body: unknown = await res.json().catch(() => null)
 
   if (!res.ok) {
     const message =
       body && typeof body === 'object' && 'error' in body
         ? String((body as { error: unknown }).error)
-        : `El servidor respondió ${res.status}`
+        : t('common.serverSaid', { status: res.status })
     throw new Error(message)
   }
 
   return body as T
-}
-
-const UNITS: [limit: number, seconds: number, singular: string, plural: string][] = [
-  [60, 1, 'segundo', 'segundos'],
-  [3600, 60, 'minuto', 'minutos'],
-  [86400, 3600, 'hora', 'horas'],
-  [2592000, 86400, 'día', 'días'],
-  [31536000, 2592000, 'mes', 'meses'],
-  [Infinity, 31536000, 'año', 'años'],
-]
-
-export function relativeTime(iso: string): string {
-  const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000)
-  if (seconds < 45) return 'hace un momento'
-
-  for (const [limit, divisor, singular, plural] of UNITS) {
-    if (seconds < limit) {
-      const n = Math.round(seconds / divisor)
-      return `hace ${n} ${n === 1 ? singular : plural}`
-    }
-  }
-  return 'hace mucho'
 }

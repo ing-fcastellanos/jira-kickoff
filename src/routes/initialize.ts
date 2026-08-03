@@ -15,7 +15,7 @@ import {
   setWorktreePermissionMode,
   worktreePathFor,
 } from '../worktree'
-import { replyWithError } from './errors'
+import { replyWithError, say } from './errors'
 
 const initializeBody = z.object({
   ticketKey: z.string().min(1),
@@ -42,7 +42,7 @@ export const initializeRoutes: FastifyPluginAsync<{
     const config = store.get()
     const ticket = await tickets.find(ticketKey.toUpperCase())
     if (!ticket) {
-      await reply.status(404).send({ error: `${ticketKey} no esta entre tus tickets abiertos.` })
+      await reply.status(404).send({ error: say(reply, 'err.ticketNotFound', { ticket: ticketKey }) })
       return null
     }
 
@@ -50,7 +50,7 @@ export const initializeRoutes: FastifyPluginAsync<{
     if (!project) {
       await reply
         .status(400)
-        .send({ error: `El proyecto ${ticket.projectKey} no esta en config.json.` })
+        .send({ error: say(reply, 'err.projectNotConfigured', { project: ticket.projectKey }) })
       return null
     }
 
@@ -104,7 +104,7 @@ export const initializeRoutes: FastifyPluginAsync<{
       if (!r) return reply
 
       if (!(await isValidBranchName(r.repo, branch))) {
-        return reply.status(400).send({ error: `"${branch}" no es un nombre de rama valido.` })
+        return reply.status(400).send({ error: say(reply, 'err.invalidBranch', { branch }) })
       }
 
       // `ls-remote` consulta el remoto sin actualizar refs locales, y el worktree
@@ -137,10 +137,10 @@ export const initializeRoutes: FastifyPluginAsync<{
       const deepLink = buildDeepLink(prompt, r.worktree)
       if (deepLink.length > URL_SAFE_LENGTH) {
         return reply.status(400).send({
-          error:
-            `El prompt genera una URL de ${deepLink.length} caracteres, por encima del limite ` +
-            `de la linea de comandos de Windows. Acortalo y vuelve a intentarlo. ` +
-            `El worktree ya quedo creado en ${r.worktree}.`,
+          error: say(reply, 'err.urlTooLong', {
+            length: deepLink.length,
+            worktree: r.worktree,
+          }),
         })
       }
 
@@ -184,9 +184,7 @@ export const initializeRoutes: FastifyPluginAsync<{
       }
       return result
     } catch (err) {
-      if (err instanceof WorktreeConflictError) {
-        return reply.status(409).send({ error: err.message })
-      }
+      // WorktreeConflictError ya lleva su propio 409 y su clave de mensaje.
       return replyWithError(reply, err)
     }
   })

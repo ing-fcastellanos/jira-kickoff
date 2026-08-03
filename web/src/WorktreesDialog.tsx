@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { WorktreeInfo, WorktreesResponse } from './types'
 import { getJson, postJson } from './api'
 import { Button, Heading, Key, Modal, Note } from './ui'
+import { useT } from './LocaleProvider'
 
 type Load =
   | { status: 'loading' }
@@ -16,15 +17,16 @@ function isRisky(w: WorktreeInfo): boolean {
 }
 
 function Badges({ w }: { w: WorktreeInfo }) {
+  const { t } = useT()
   const badges: { text: string; tone: string }[] = []
 
-  if (w.dirty) badges.push({ text: 'sin commitear', tone: 'bg-danger-bg text-danger' })
+  if (w.dirty) badges.push({ text: t('wt.uncommitted'), tone: 'bg-danger-bg text-danger' })
   if (w.unpushed > 0)
-    badges.push({ text: `${w.unpushed} sin subir`, tone: 'bg-danger-bg text-danger' })
-  if (!w.branch) badges.push({ text: 'sin rama', tone: 'bg-control text-ink-4' })
-  if (w.merged) badges.push({ text: 'fusionada', tone: 'bg-ok-bg text-ok' })
+    badges.push({ text: t('wt.unpushed', { n: w.unpushed }), tone: 'bg-danger-bg text-danger' })
+  if (!w.branch) badges.push({ text: t('wt.noBranch'), tone: 'bg-control text-ink-4' })
+  if (w.merged) badges.push({ text: t('wt.merged'), tone: 'bg-ok-bg text-ok' })
   if (w.branch && !w.remoteBranchExists)
-    badges.push({ text: 'no está en el remoto', tone: 'bg-warn-bg text-warn' })
+    badges.push({ text: t('wt.notOnRemote'), tone: 'bg-warn-bg text-warn' })
 
   return (
     <>
@@ -46,6 +48,7 @@ function Row({
   editorLabel: string
   onRemoved: (path: string) => void
 }) {
+  const { t } = useT()
   const [confirming, setConfirming] = useState(false)
   const [alsoBranch, setAlsoBranch] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -84,6 +87,13 @@ function Row({
     }
   }, [w, risky, alsoBranch, onRemoved])
 
+  // Se enumera lo que se pierde en vez de decir "hay cambios": el usuario
+  // decide distinto si son ediciones sin guardar o commits que no ha subido.
+  const losses = [
+    w.dirty ? t('wt.losesUncommitted') : null,
+    w.unpushed > 0 ? t('wt.losesUnpushed', { n: w.unpushed }) : null,
+  ].filter(Boolean)
+
   return (
     <li className="flex flex-col gap-[7px] border-b border-line-soft px-3.5 py-3 last:border-b-0">
       <div className="flex flex-wrap items-center gap-[7px]">
@@ -91,7 +101,7 @@ function Row({
         <Badges w={w} />
         <div className="ml-auto flex shrink-0 gap-1.5">
           <Button variant="quiet" className={SMALL} onClick={() => void open()} disabled={opening}>
-            {opening ? 'Abriendo…' : `Abrir en ${editorLabel}`}
+            {opening ? t('wt.opening') : t('wt.openIn', { editor: editorLabel })}
           </Button>
           <Button
             variant="quiet"
@@ -99,7 +109,7 @@ function Row({
             onClick={() => setConfirming(true)}
             disabled={confirming}
           >
-            Borrar
+            {t('common.delete')}
           </Button>
         </div>
       </div>
@@ -110,15 +120,11 @@ function Row({
 
       {confirming && (
         <div className="flex flex-col gap-2.5 rounded-lg border border-danger-line bg-danger-panel px-3 py-3">
-          <p className="text-xs leading-relaxed text-danger">
+          <p className="text-xs leading-relaxed">
             {risky ? (
-              <>
-                Tiene {w.dirty ? 'cambios sin commitear' : ''}
-                {w.dirty && w.unpushed > 0 ? ' y ' : ''}
-                {w.unpushed > 0 ? `${w.unpushed} commit(s) sin subir` : ''}. Se pierden.
-              </>
+              <span className="text-danger">{t('wt.loses', { what: losses.join(' + ') })}</span>
             ) : (
-              <span className="text-ink-3">Se borra la carpeta del worktree. Nada más.</span>
+              <span className="text-ink-3">{t('wt.safeDelete')}</span>
             )}
           </p>
 
@@ -131,8 +137,7 @@ function Row({
                 className="size-3.5 accent-[var(--accent)]"
               />
               <span>
-                Borrar también la rama local{' '}
-                {!w.merged && <span className="text-warn">(no está fusionada)</span>}
+                {t('wt.alsoBranch')} {!w.merged && <span className="text-warn">{t('wt.notMerged')}</span>}
               </span>
             </label>
           )}
@@ -141,7 +146,7 @@ function Row({
 
           <div className="flex gap-2">
             <Button variant="danger" className={SMALL} onClick={() => void remove()} disabled={busy}>
-              {busy ? 'Borrando…' : risky ? 'Borrar de todos modos' : 'Confirmar'}
+              {busy ? t('wt.deleting') : risky ? t('wt.deleteAnyway') : t('common.confirm')}
             </Button>
             <Button
               variant="ghost"
@@ -149,7 +154,7 @@ function Row({
               onClick={() => setConfirming(false)}
               disabled={busy}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
           </div>
         </div>
@@ -159,6 +164,7 @@ function Row({
 }
 
 export default function WorktreesDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useT()
   const [load, setLoad] = useState<Load>({ status: 'loading' })
   const [removed, setRemoved] = useState<Set<string>>(new Set())
 
@@ -183,22 +189,20 @@ export default function WorktreesDialog({ onClose }: { onClose: () => void }) {
   const all = load.status === 'ready' ? load.data.worktrees : []
   const manageable = all.filter((w) => w.managed && !w.isMain && !removed.has(w.path))
   const byProject = [...new Set(manageable.map((w) => w.projectKey))]
-  const editorLabel = load.status === 'ready' ? load.data.editorLabel : 'el editor'
+  const editorLabel = load.status === 'ready' ? load.data.editorLabel : '…'
 
   return (
     <Modal
-      label="Worktrees"
+      label={t('wt.title')}
       onClose={onClose}
       title={
-        <Heading level={2} hint="Solo los que viven en la carpeta de worktrees de cada repo.">
-          Worktrees
+        <Heading level={2} hint={t('wt.subtitle')}>
+          {t('wt.title')}
         </Heading>
       }
     >
       <div className="flex max-h-[70vh] flex-col gap-[18px] overflow-y-auto px-4.5 py-4">
-        {load.status === 'loading' && (
-          <p className="text-[12.5px] text-ink-5">Inspeccionando repos…</p>
-        )}
+        {load.status === 'loading' && <p className="text-[12.5px] text-ink-5">{t('wt.loading')}</p>}
 
         {load.status === 'error' && <Note tone="danger">{load.message}</Note>}
 
@@ -210,9 +214,7 @@ export default function WorktreesDialog({ onClose }: { onClose: () => void }) {
           ))}
 
         {load.status === 'ready' && manageable.length === 0 && (
-          <p className="py-8 text-center text-[12.5px] text-ink-5">
-            No queda ningún worktree que limpiar.
-          </p>
+          <p className="py-8 text-center text-[12.5px] text-ink-5">{t('wt.empty')}</p>
         )}
 
         {byProject.map((projectKey) => {

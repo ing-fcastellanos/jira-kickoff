@@ -1,7 +1,9 @@
-import { readFileSync, existsSync, writeFileSync, renameSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import dotenv from 'dotenv'
 import { z } from 'zod'
+import { configDir, configPath } from './paths'
+import { readCredentials } from './credentials'
 
 dotenv.config()
 
@@ -22,8 +24,8 @@ const projectSchema = z.object({
 const configSchema = z.object({
   server: z.object({ port: z.number().int().positive() }).default({ port: 8787 }),
   jira: z.object({
-    site: z.string().url(),
-    statuses: z.array(z.string().min(1)).min(1),
+    site: z.string().url().or(z.literal('')),
+    statuses: z.array(z.string().min(1)),
     /** Se concatena a la JQL generada. Util para acotar a un sprint o a un epic. */
     extraJql: z.string().default(''),
   }),
@@ -33,8 +35,7 @@ const configSchema = z.object({
      * Claude Code deduce la rama principal de un repo con
      * `git symbolic-ref refs/remotes/origin/HEAD`, no de la rama base que use
      * este panel. Si el remoto declara `main` pero aqui se trabaja sobre otra,
-     * la sesion mostrara la equivocada. Con esto se apunta `origin/HEAD` a la
-     * rama base al inicializar. Es un cambio local del repo, nunca se sube.
+     * la sesion mostrara la equivocada. Es un cambio local, nunca se sube.
      */
     alignOriginHead: z.boolean().default(false),
   }),
@@ -44,22 +45,15 @@ const configSchema = z.object({
   }),
   launch: z
     .object({
-      /**
-       * `open` entrega el deep link al sistema. `clipboard` se queda en crear el
-       * worktree y deja que la UI ofrezca el prompt para pegarlo a mano, que es
-       * la salida cuando el deep link deja de funcionar.
-       */
       mode: z.enum(['open', 'clipboard']),
       /**
        * El deep link solo transporta el prompt y la carpeta: no hay forma de
-       * pedirle un modo de permisos. Se escribe en `.claude/settings.local.json`
-       * del worktree, que es tier `local`.
+       * pedirle un modo de permisos. Se escribe en el
+       * `.claude/settings.local.json` del worktree, que es tier `local`.
        *
        * Tiene que ser el tier local y no el `settings.json` versionado del repo:
        * los modos elevados que vienen del tier `project` la app los descarta en
        * silencio, para que un repositorio no pueda auto-concederse permisos.
-       *
-       * `inherit` no escribe nada y deja que decidan tus settings de usuario.
        */
       permissionMode: z
         .enum(['inherit', 'default', 'plan', 'acceptEdits', 'auto', 'bypassPermissions'])
@@ -68,7 +62,6 @@ const configSchema = z.object({
     .default({ mode: 'open', permissionMode: 'inherit' }),
   editor: z
     .object({
-      /** Nombre que se muestra en el boton. */
       label: z.string().min(1),
       command: z.string().min(1),
       /** `{{path}}` se sustituye por la ruta del worktree. */
@@ -76,9 +69,7 @@ const configSchema = z.object({
     })
     .default({ label: 'VS Code', command: 'code', args: ['-n', '{{path}}'] }),
   prompt: promptSchema,
-  projects: z
-    .record(z.string(), projectSchema)
-    .refine((p) => Object.keys(p).length > 0, 'Define al menos un proyecto.'),
+  projects: z.record(z.string(), projectSchema),
 })
 
 export type FileConfig = z.infer<typeof configSchema>
@@ -90,25 +81,29 @@ export interface AppConfig extends FileConfig {
   port: number
   jiraEmail: string | null
   jiraToken: string | null
+  /** Hay sitio de Jira y al menos un proyecto: la app puede trabajar. */
+  configured: boolean
 }
 
 export class ConfigError extends Error {}
 
-function describeIssues(error: z.ZodError): string {
-  return error.issues.map((i) => `  · ${i.path.join('.') || '(raiz)'}: ${i.message}`).join('\n')
+/** Punto de partida de una instalacion nueva, antes del asistente. */
+export const DEFAULT_CONFIG: FileConfig = {
+  server: { port: 8787 },
+  jira: { site: '', statuses: ['To Do', 'In Progress'], extraJql: '' },
+  worktrees: { dir: '.worktrees', alignOriginHead: false },
+  branch: { pattern: 'feature/{{ticket-lower}}-{{slug}}', slugMaxLength: 40 },
+  launch: { mode: 'open', permissionMode: 'inherit' },
+  editor: { label: 'VS Code', command: 'code', args: ['-n', '{{path}}'] },
+  prompt: {
+    base: 'Vamos a trabajar el ticket {{ticket}}.',
+    additions: ['Revisa los comentarios del ticket antes de proponer nada.', 'El ticket esta en {{url}}.'],
+  },
+  projects: {},
 }
 
-function toAppConfig(file: FileConfig): AppConfig {
-  const envPort = process.env.PORT ? Number(process.env.PORT) : null
-  if (envPort !== null && !Number.isInteger(envPort)) {
-    throw new ConfigError(`PORT="${process.env.PORT}" no es un entero.`)
-  }
-  return {
-    ...file,
-    port: envPort ?? file.server.port,
-    jiraEmail: process.env.JIRA_EMAIL?.trim() || null,
-    jiraToken: process.env.JIRA_API_TOKEN?.trim() || null,
-  }
+function describeIssues(error: z.ZodError): string {
+  return error.issues.map((i) => `  · ${i.path.join('.') || '(raiz)'}: ${i.message}`).join('\n')
 }
 
 export function parseConfig(raw: unknown): FileConfig {
@@ -119,21 +114,69 @@ export function parseConfig(raw: unknown): FileConfig {
   return parsed.data
 }
 
-export function loadConfig(rootDir: string): AppConfig {
-  const path = resolve(rootDir, 'config.json')
-
-  if (!existsSync(path)) {
-    throw new ConfigError(
-      `No encuentro config.json en ${path}.\n` +
-        `Copia config.example.json a config.json y ajusta las rutas de tus repos.`,
-    )
+function toAppConfig(file: FileConfig): AppConfig {
+  const envPort = process.env.PORT ? Number(process.env.PORT) : null
+  if (envPort !== null && !Number.isInteger(envPort)) {
+    throw new ConfigError(`PORT="${process.env.PORT}" no es un entero.`)
   }
+
+  const creds = readCredentials()
+  return {
+    ...file,
+    port: envPort ?? file.server.port,
+    jiraEmail: creds?.jiraEmail ?? null,
+    jiraToken: creds?.jiraToken ?? null,
+    configured: Boolean(file.jira.site) && Object.keys(file.projects).length > 0,
+  }
+}
+
+/**
+ * Traslada una configuracion que viviera junto al codigo, de cuando esto se
+ * clonaba en vez de ejecutarse con `npx`. Se hace una sola vez y sin borrar el
+ * original, para no dejar a nadie sin su configuracion tras actualizar.
+ */
+function migrateLegacy(rootDir: string): void {
+  const target = configPath()
+  if (existsSync(target)) return
+
+  // Dos origenes posibles: junto al codigo, de cuando esto se clonaba en vez de
+  // ejecutarse con `npx`, y la carpeta del nombre anterior del paquete. Se copia
+  // sin borrar el original, para no dejar a nadie sin su configuracion.
+  const candidates = [
+    resolve(rootDir, 'config.json'),
+    resolve(dirname(configDir()), 'jira-ticket-workflow', 'config.json'),
+  ]
+
+  for (const legacy of candidates) {
+    if (!existsSync(legacy)) continue
+    mkdirSync(configDir(), { recursive: true })
+    copyFileSync(legacy, target)
+
+    const legacyCreds = resolve(dirname(legacy), 'credentials.json')
+    const targetCreds = resolve(dirname(target), 'credentials.json')
+    if (existsSync(legacyCreds) && !existsSync(targetCreds)) {
+      copyFileSync(legacyCreds, targetCreds)
+    }
+    return
+  }
+}
+
+/**
+ * Nunca falla por ausencia de configuracion: una instalacion nueva arranca con
+ * los valores por defecto y el asistente se encarga del resto. Solo se queja si
+ * el archivo existe y esta roto, que si es un problema que hay que ver.
+ */
+export function loadConfig(rootDir: string): AppConfig {
+  migrateLegacy(rootDir)
+
+  const path = configPath()
+  if (!existsSync(path)) return toAppConfig(DEFAULT_CONFIG)
 
   let raw: unknown
   try {
     raw = JSON.parse(readFileSync(path, 'utf8'))
   } catch (err) {
-    throw new ConfigError(`config.json no es JSON valido: ${(err as Error).message}`)
+    throw new ConfigError(`${path} no es JSON valido: ${(err as Error).message}`)
   }
 
   return toAppConfig(parseConfig(raw))
@@ -169,13 +212,10 @@ export function enabledProjectKeys(config: AppConfig): string[] {
 export class ConfigStore {
   private listeners = new Set<() => void>()
 
-  private constructor(
-    private readonly rootDir: string,
-    private current: AppConfig,
-  ) {}
+  private constructor(private current: AppConfig) {}
 
   static load(rootDir: string): ConfigStore {
-    return new ConfigStore(rootDir, loadConfig(rootDir))
+    return new ConfigStore(loadConfig(rootDir))
   }
 
   get(): AppConfig {
@@ -186,16 +226,29 @@ export class ConfigStore {
     this.listeners.add(listener)
   }
 
+  /** Relee credenciales sin tocar el archivo de configuracion. */
+  reloadCredentials(): AppConfig {
+    const { port: _p, jiraEmail: _e, jiraToken: _t, configured: _c, ...file } = this.current
+    this.current = toAppConfig(file)
+    this.notify()
+    return this.current
+  }
+
   save(raw: unknown): AppConfig {
     const validated = parseConfig(raw)
 
-    const path = resolve(this.rootDir, 'config.json')
+    mkdirSync(configDir(), { recursive: true })
+    const path = configPath()
     const tmp = `${path}.tmp`
     writeFileSync(tmp, `${JSON.stringify(validated, null, 2)}\n`, 'utf8')
     renameSync(tmp, path)
 
     this.current = toAppConfig(validated)
-    for (const listener of this.listeners) listener()
+    this.notify()
     return this.current
+  }
+
+  private notify(): void {
+    for (const listener of this.listeners) listener()
   }
 }

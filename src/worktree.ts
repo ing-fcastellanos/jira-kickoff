@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { GitError } from './git'
+import { LocalizedError } from './messages'
 import type { BranchAction } from './types'
 
 const run = promisify(execFile)
@@ -23,7 +24,12 @@ async function git(repo: string, args: string[], timeout: number): Promise<strin
     return stdout
   } catch (err) {
     const e = err as { stderr?: string; message: string; killed?: boolean }
-    if (e.killed) throw new GitError(`\`git ${args[0]}\` excedio ${timeout / 1000}s.`)
+    if (e.killed) {
+      throw new LocalizedError('err.gitTimeout', {
+        command: args[0] ?? 'git',
+        seconds: timeout / 1000,
+      })
+    }
     throw new GitError(e.stderr?.trim() || e.message)
   }
 }
@@ -212,7 +218,7 @@ export interface CreateWorktreeResult {
   created: boolean
 }
 
-export class WorktreeConflictError extends Error {}
+export class WorktreeConflictError extends LocalizedError {}
 
 /**
  * Deja listo un worktree en `worktreePath` apuntando a `branch`.
@@ -229,25 +235,24 @@ export async function createWorktree({
   if (existing) {
     if (existing.branch === branch) return { action: 'reused-worktree', created: false }
     throw new WorktreeConflictError(
-      `Ya hay un worktree en ${worktreePath} sobre la rama "${existing.branch ?? '(detached)'}". ` +
-        `Elige esa rama para retomarlo, o quitalo con \`git worktree remove\`.`,
+      'err.worktreeOtherBranch',
+      { path: worktreePath, branch: existing.branch ?? '(detached)' },
+      409,
     )
   }
 
   // Carpeta sin registrar en git: restos de un borrado a mano. `worktree add`
   // fallaria con un mensaje opaco, asi que se explica antes.
   if (existsSync(worktreePath)) {
-    throw new WorktreeConflictError(
-      `La carpeta ${worktreePath} existe pero git no la conoce como worktree. ` +
-        `Borrala o ejecuta \`git worktree prune\` en ${repo}.`,
-    )
+    throw new WorktreeConflictError('err.worktreeOrphanFolder', { path: worktreePath, repo }, 409)
   }
 
   const checkedOutElsewhere = (await listWorktrees(repo)).find((w) => w.branch === branch)
   if (checkedOutElsewhere) {
     throw new WorktreeConflictError(
-      `La rama "${branch}" ya esta usada por el worktree ${checkedOutElsewhere.path}. ` +
-        `Git no permite la misma rama en dos worktrees.`,
+      'err.branchInUse',
+      { branch, path: checkedOutElsewhere.path },
+      409,
     )
   }
 

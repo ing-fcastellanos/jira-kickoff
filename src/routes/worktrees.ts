@@ -15,7 +15,8 @@ import {
   removeWorktree,
   unpushedCount,
 } from '../worktree'
-import { replyWithError } from './errors'
+import { langOf, replyWithError, say } from './errors'
+import { message } from '../messages'
 
 const openEditorBody = z.object({
   projectKey: z.string().min(1),
@@ -123,7 +124,7 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
     const config = store.get()
     const project = config.projects[projectKey]
     if (!project) {
-      return reply.status(400).send({ error: `El proyecto ${projectKey} no esta en config.json.` })
+      return reply.status(400).send({ error: say(reply, 'err.projectNotConfigured', { project: projectKey }) })
     }
 
     // Mismo cerrojo que el borrado: solo se abre lo que este dentro de la
@@ -131,7 +132,7 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
     // cualquier ruta del disco que llegue por la peticion.
     if (!isInsideWorktreeDir(project.repo, config.worktrees.dir, path)) {
       return reply.status(400).send({
-        error: `${path} esta fuera de la carpeta de worktrees de ${projectKey}. No se abre.`,
+        error: say(reply, 'err.outsideWorktrees', { path, project: projectKey }),
       })
     }
 
@@ -139,8 +140,7 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
       await openInEditor(config.editor.command, config.editor.args, resolve(path))
       return { opened: path, editor: config.editor.label }
     } catch (err) {
-      if (err instanceof EditorError) return reply.status(502).send({ error: err.message })
-      throw err
+      return replyWithError(reply, err)
     }
   })
 
@@ -156,12 +156,12 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
     const config = store.get()
     const project = config.projects[projectKey]
     if (!project) {
-      return reply.status(400).send({ error: `El proyecto ${projectKey} no esta en config.json.` })
+      return reply.status(400).send({ error: say(reply, 'err.projectNotConfigured', { project: projectKey }) })
     }
 
     if (!isInsideWorktreeDir(project.repo, config.worktrees.dir, path)) {
       return reply.status(400).send({
-        error: `${path} esta fuera de la carpeta de worktrees de ${projectKey}. No se toca.`,
+        error: say(reply, 'err.outsideWorktrees', { path, project: projectKey }),
       })
     }
 
@@ -170,7 +170,7 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
         (w) => resolve(w.path).toLowerCase() === resolve(path).toLowerCase(),
       )
       if (!entry) {
-        return reply.status(404).send({ error: `git no conoce ningun worktree en ${path}.` })
+        return reply.status(404).send({ error: say(reply, 'err.worktreeUnknown', { path }) })
       }
 
       const branch = entry.branch
@@ -185,12 +185,15 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
         }
 
         if (dirty || unpushed > 0) {
-          const razones = [
-            dirty ? 'cambios sin commitear' : null,
-            unpushed > 0 ? `${unpushed} commit(s) sin subir` : null,
-          ].filter(Boolean)
+          const lang = langOf(reply)
+          const what = [
+            dirty ? message(lang, 'err.losesUncommitted') : null,
+            unpushed > 0 ? message(lang, 'err.losesUnpushed', { n: unpushed }) : null,
+          ]
+            .filter(Boolean)
+            .join(' + ')
           return reply.status(409).send({
-            error: `Tiene ${razones.join(' y ')}. Se perderian al borrarlo.`,
+            error: message(lang, 'err.worktreeHasWork', { what }),
             needsForce: true,
           })
         }

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Branch, BranchesResponse, InitializeResult, PromptResponse, Ticket } from './types'
 import { getJson, postJson } from './api'
 import { Button, Key, Modal, Note, inputClass, monoInputClass } from './ui'
+import { useT } from './LocaleProvider'
+import type { Key as MsgKey } from './i18n'
 
 /** Un repo veterano pasa de 600 ramas: pintarlas todas cuelga la lista y no ayuda. */
 const MAX_VISIBLE = 30
@@ -14,18 +16,14 @@ type Load =
   | { status: 'error'; message: string }
   | { status: 'ready'; data: BranchesResponse }
 
-const ACTION_LABEL: Record<InitializeResult['branchAction'], string> = {
-  'created-from-base': 'Rama nueva, creada desde la base',
-  'checked-out-local': 'Rama local existente, worktree nuevo',
-  'tracked-remote': 'Rama traída del remoto',
-  'reused-worktree': 'Worktree ya existente, reutilizado',
+const ACTION_KEY: Record<InitializeResult['branchAction'], MsgKey> = {
+  'created-from-base': 'action.created-from-base',
+  'checked-out-local': 'action.checked-out-local',
+  'tracked-remote': 'action.tracked-remote',
+  'reused-worktree': 'action.reused-worktree',
 }
 
 const FORM_LABEL = 'text-[12.5px] font-semibold text-ink-3'
-
-function originOf(b: Branch): string {
-  return b.remote && b.local ? 'remota + local' : b.remote ? 'remota' : 'local'
-}
 
 function BranchRow({
   branch,
@@ -36,6 +34,14 @@ function BranchRow({
   onPick: (name: string) => void
   bordered?: boolean
 }) {
+  const { t } = useT()
+  const origin =
+    branch.remote && branch.local
+      ? t('branch.originRemoteLocal')
+      : branch.remote
+        ? t('branch.originRemote')
+        : t('branch.originLocal')
+
   return (
     <button
       type="button"
@@ -47,12 +53,13 @@ function BranchRow({
       <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-ink-2">
         {branch.name}
       </span>
-      <span className="shrink-0 text-[11px] text-ink-6">{originOf(branch)}</span>
+      <span className="shrink-0 text-[11px] text-ink-6">{origin}</span>
     </button>
   )
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
+  const { t } = useT()
   const [done, setDone] = useState(false)
   return (
     <Button
@@ -64,7 +71,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
         })
       }}
     >
-      {done ? 'Copiado ✓' : label}
+      {done ? t('common.copied') : label}
     </Button>
   )
 }
@@ -78,6 +85,7 @@ export default function BranchDialog({
   onClose: () => void
   onInitialized: () => void
 }) {
+  const { t } = useT()
   const [load, setLoad] = useState<Load>({ status: 'loading' })
   const [branchName, setBranchName] = useState('')
   const [filter, setFilter] = useState('')
@@ -167,9 +175,17 @@ export default function BranchDialog({
     }
   }, [ticket.key, branchName, prompt, onInitialized])
 
+  const whereExists = existing
+    ? existing.remote && existing.local
+      ? t('branch.existsRemoteLocal')
+      : existing.remote
+        ? t('branch.existsRemote')
+        : t('branch.existsLocal')
+    : ''
+
   return (
     <Modal
-      label={`Inicializar ${ticket.key}`}
+      label={`${t('card.initialize')} ${ticket.key}`}
       onClose={onClose}
       title={
         <>
@@ -181,10 +197,10 @@ export default function BranchDialog({
         result ? undefined : (
           <>
             <Button variant="ghost" onClick={onClose}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button variant="primary" onClick={() => void submit()} disabled={!canSubmit}>
-              {submitting ? 'Creando worktree…' : 'Crear worktree y abrir sesión'}
+              {submitting ? t('branch.submitting') : t('branch.submit')}
             </Button>
           </>
         )
@@ -196,7 +212,7 @@ export default function BranchDialog({
         ) : (
           <>
             {load.status === 'loading' && (
-              <p className="text-[12.5px] text-ink-5">Leyendo ramas del remoto…</p>
+              <p className="text-[12.5px] text-ink-5">{t('branch.loading')}</p>
             )}
 
             {load.status === 'error' && <Note tone="danger">{load.message}</Note>}
@@ -204,13 +220,13 @@ export default function BranchDialog({
             {data && (
               <>
                 <p className="font-mono text-[11.5px] break-all text-ink-6">
-                  {data.repo} <span className="text-line-strong">·</span> parte de{' '}
+                  {data.repo} <span className="text-line-strong">·</span> {t('branch.partOf')}{' '}
                   <span className="text-ok">{data.baseBranch}</span>
                 </p>
 
                 {data.remoteError && (
-                  <Note tone="warn" title="Sin remoto">
-                    La lista es solo local: {data.remoteError}
+                  <Note tone="warn" title={t('branch.noRemoteTitle')}>
+                    {t('branch.noRemote', { error: data.remoteError })}
                   </Note>
                 )}
 
@@ -218,7 +234,7 @@ export default function BranchDialog({
                   <div className="flex flex-col gap-2 rounded-lg border border-info-line bg-info-panel px-3 py-3">
                     <p className="text-[12.5px] font-semibold text-info">
                       <span className="syntax opacity-70">&gt; </span>
-                      Ya hay {data.matches.length === 1 ? 'una rama' : 'ramas'} para este ticket
+                      {data.matches.length === 1 ? t('branch.matchesOne') : t('branch.matchesMany')}
                     </p>
                     <div className="flex flex-col gap-0.5">
                       {data.matches.map((b) => (
@@ -230,7 +246,7 @@ export default function BranchDialog({
 
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="branch" className={FORM_LABEL}>
-                    Rama
+                    {t('branch.label')}
                   </label>
                   <input
                     id="branch"
@@ -241,19 +257,11 @@ export default function BranchDialog({
                   />
                   <p className="text-[11.5px] text-ink-5">
                     {branchName.trim() === '' ? (
-                      <span className="text-warn">Escribe un nombre.</span>
+                      <span className="text-warn">{t('branch.needName')}</span>
                     ) : existing ? (
-                      <>
-                        Ya existe (
-                        {existing.remote && existing.local
-                          ? 'remota y local'
-                          : existing.remote
-                            ? 'solo remota'
-                            : 'solo local'}
-                        ) <span className="text-line-strong">·</span> se retomará en vez de crearse
-                      </>
+                      t('branch.willReuse', { where: whereExists })
                     ) : (
-                      <>Rama nueva · se creará desde {data.baseBranch}</>
+                      t('branch.willCreate', { base: data.baseBranch })
                     )}
                   </p>
                 </div>
@@ -266,7 +274,7 @@ export default function BranchDialog({
                   >
                     <span className="syntax">{listOpen ? '▾' : '▸'}</span>
                     <span>
-                      Ramas existentes{' '}
+                      {t('branch.existing')}{' '}
                       <span className="font-normal text-ink-6">({data.branches.length})</span>
                     </span>
                   </button>
@@ -276,14 +284,14 @@ export default function BranchDialog({
                       <input
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
-                        placeholder="Buscar…"
+                        placeholder={t('common.search')}
                         spellCheck={false}
                         className={inputClass}
                       />
                       <div className="max-h-[168px] overflow-y-auto rounded-md border border-line bg-input">
                         {filtered.length === 0 && (
                           <p className="px-2.5 py-2 text-[11.5px] text-ink-6">
-                            Ninguna rama coincide.
+                            {t('branch.noneMatch')}
                           </p>
                         )}
                         {filtered.map((b) => (
@@ -292,7 +300,7 @@ export default function BranchDialog({
                       </div>
                       {hidden > 0 && (
                         <p className="text-[11.5px] text-ink-6">
-                          y {hidden} más. Usa el buscador para acotar.
+                          {t('branch.andMore', { n: hidden })}
                         </p>
                       )}
                     </div>
@@ -302,7 +310,7 @@ export default function BranchDialog({
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-baseline justify-between gap-3">
                     <label htmlFor="prompt" className={FORM_LABEL}>
-                      Prompt inicial
+                      {t('branch.prompt')}
                     </label>
                     <span
                       className={`font-mono text-[11.5px] ${
@@ -326,15 +334,11 @@ export default function BranchDialog({
                   />
                   <p className="text-[11.5px] text-ink-5">
                     {tooLong ? (
-                      <span className="text-danger">
-                        Excede lo que acepta la app; se truncaría.
-                      </span>
+                      <span className="text-danger">{t('branch.promptTooLong')}</span>
                     ) : nearLimit ? (
-                      <span className="text-warn">
-                        Muy largo: al codificarse puede acercarse al tope de la línea de comandos.
-                      </span>
+                      <span className="text-warn">{t('branch.promptNearLimit')}</span>
                     ) : (
-                      'Se envía tal cual lo ves. Nada se añade por detrás.'
+                      t('branch.promptPlain')
                     )}
                   </p>
                 </div>
@@ -350,37 +354,39 @@ export default function BranchDialog({
 }
 
 function ResultView({ result, onClose }: { result: InitializeResult; onClose: () => void }) {
+  const { t } = useT()
   const promptFromLink = decodeURIComponent(
     result.deepLink.split('?q=')[1]?.split('&folder=')[0] ?? '',
   )
   const ok = result.launched || result.launchMode === 'clipboard'
 
+  const title = result.launched
+    ? t('result.launched')
+    : result.launchMode === 'clipboard'
+      ? t('result.clipboard')
+      : t('result.failed')
+
+  const body = result.launched
+    ? t('result.launchedBody')
+    : result.launchMode === 'clipboard'
+      ? t('result.clipboardBody')
+      : result.launchError
+
+  const rows: [string, string, boolean][] = [
+    [t('result.branch'), result.branch, true],
+    [t('result.worktree'), result.worktree, true],
+    [t('result.what'), t(ACTION_KEY[result.branchAction]), false],
+  ]
+
   return (
     <div className="flex flex-col gap-4">
-      <Note
-        tone={ok ? 'ok' : 'warn'}
-        title={
-          result.launched
-            ? 'Sesión enviada a Claude Code'
-            : result.launchMode === 'clipboard'
-              ? 'Worktree listo'
-              : 'Worktree listo, pero no pude abrir la sesión'
-        }
-      >
-        {result.launched
-          ? 'Busca la ventana de Claude Code: el prompt está escrito, esperando tu Enter.'
-          : result.launchMode === 'clipboard'
-            ? 'Copia el prompt y pégalo en una sesión nueva sobre esa carpeta.'
-            : result.launchError}
+      <Note tone={ok ? 'ok' : 'warn'} title={title}>
+        {body}
       </Note>
 
       <dl className="flex flex-col gap-2">
-        {[
-          ['Rama', result.branch, true],
-          ['Worktree', result.worktree, true],
-          ['Qué pasó', ACTION_LABEL[result.branchAction], false],
-        ].map(([label, value, mono]) => (
-          <div key={String(label)} className="flex gap-3">
+        {rows.map(([label, value, mono]) => (
+          <div key={label} className="flex gap-3">
             <dt className="w-[86px] shrink-0 text-xs text-ink-5">{label}</dt>
             <dd
               className={`min-w-0 break-all ${
@@ -394,18 +400,18 @@ function ResultView({ result, onClose }: { result: InitializeResult; onClose: ()
       </dl>
 
       <div className="flex flex-wrap items-center gap-2">
-        <CopyButton text={promptFromLink} label="Copiar prompt" />
-        <CopyButton text={result.worktree} label="Copiar ruta" />
+        <CopyButton text={promptFromLink} label={t('result.copyPrompt')} />
+        <CopyButton text={result.worktree} label={t('result.copyPath')} />
         {!result.launched && result.launchMode === 'open' && (
           <a
             href={result.deepLink}
             className="rounded-md border border-line-strong bg-control px-3 py-1.5 text-xs font-medium text-ink-3 hover:bg-control-hover"
           >
-            Abrir el enlace a mano
+            {t('result.openManually')}
           </a>
         )}
         <Button variant="primary" onClick={onClose} className="ml-auto">
-          Listo
+          {t('common.done')}
         </Button>
       </div>
     </div>

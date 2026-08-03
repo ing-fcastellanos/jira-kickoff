@@ -4,7 +4,7 @@ import type { TicketService } from '../ticket-service'
 import type { Branch, BranchesResponse } from '../types'
 import { GitError, localBranches, remoteBranches } from '../git'
 import { matchesTicket, suggestBranchName } from '../branch-name'
-import { replyWithError } from './errors'
+import { replyWithError, say } from './errors'
 
 function merge(remote: string[], local: string[]): Branch[] {
   const names = new Set([...remote, ...local])
@@ -33,13 +33,13 @@ export const branchRoutes: FastifyPluginAsync<{
     }
 
     if (!ticket) {
-      return reply.status(404).send({ error: `${ticketKey} no esta entre tus tickets abiertos.` })
+      return reply.status(404).send({ error: say(reply, 'err.ticketNotFound', { ticket: ticketKey }) })
     }
 
     const project = config.projects[ticket.projectKey]
     if (!project) {
       return reply.status(400).send({
-        error: `El proyecto ${ticket.projectKey} no esta en config.json.`,
+        error: say(reply, 'err.projectNotConfigured', { project: ticket.projectKey }),
       })
     }
 

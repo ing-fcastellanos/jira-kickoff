@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { Ticket, TicketDetail } from './types'
-import { getJson, relativeTime } from './api'
+import { getJson } from './api'
 import Markdown from './Markdown'
 import { Key, Modal, Note } from './ui'
+import { useT } from './LocaleProvider'
 
 type Load =
   | { status: 'loading' }
@@ -48,8 +49,8 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-function Person({ person }: { person: { name: string; avatar: string | null } | null }) {
-  if (!person) return <span className="text-ink-6">sin asignar</span>
+function Person({ person, empty }: { person: { name: string; avatar: string | null } | null; empty: string }) {
+  if (!person) return <span className="text-ink-6">{empty}</span>
   return (
     <span className="flex items-center gap-[7px]">
       <Avatar name={person.name} src={person.avatar} />
@@ -65,6 +66,7 @@ export default function TicketDetailDialog({
   ticket: Ticket
   onClose: () => void
 }) {
+  const { t, rel } = useT()
   const [load, setLoad] = useState<Load>({ status: 'loading' })
 
   useEffect(() => {
@@ -108,7 +110,7 @@ export default function TicketDetailDialog({
     >
       <div className="flex max-h-[70vh] flex-col gap-5 overflow-y-auto px-4.5 py-4">
         {load.status === 'loading' && (
-          <p className="text-[12.5px] text-ink-5">Trayendo el ticket de Jira…</p>
+          <p className="text-[12.5px] text-ink-5">{t('detail.loading')}</p>
         )}
 
         {load.status === 'error' && <Note tone="danger">{load.message}</Note>}
@@ -116,31 +118,34 @@ export default function TicketDetailDialog({
         {d && (
           <>
             <dl className="rounded-lg border border-line bg-panel px-3 py-0.5">
-              <Row label="Estado">
+              <Row label={t('detail.status')}>
                 <span className={`badge ${statusBadge(d)}`}>{d.status}</span>
                 {d.resolution && <span className="ml-2 text-ink-6">{d.resolution}</span>}
               </Row>
-              <Row label="Tipo">
+              <Row label={t('detail.type')}>
                 {d.issueType}
                 {d.priority && <span className="text-ink-6"> · {d.priority}</span>}
               </Row>
-              <Row label="Asignado">
-                <Person person={d.assignee} />
+              <Row label={t('detail.assignee')}>
+                <Person person={d.assignee} empty={t('detail.unassigned')} />
               </Row>
-              <Row label="Reporta">
-                <Person person={d.reporter} />
+              <Row label={t('detail.reporter')}>
+                <Person person={d.reporter} empty={t('detail.unassigned')} />
               </Row>
-              <Row label="Actualizado">
-                {relativeTime(d.updated)}
-                <span className="text-ink-6"> · creado {relativeTime(d.created)}</span>
+              <Row label={t('detail.updated')}>
+                {rel(d.updated)}
+                <span className="text-ink-6">
+                  {' · '}
+                  {t('detail.createdSuffix', { time: rel(d.created) })}
+                </span>
               </Row>
               {d.dueDate && (
-                <Row label="Vence">
+                <Row label={t('detail.due')}>
                   <span className="font-mono text-[11.5px] text-warn">{d.dueDate}</span>
                 </Row>
               )}
               {d.parent && (
-                <Row label="Padre">
+                <Row label={t('detail.parent')}>
                   <a
                     href={d.parent.url}
                     target="_blank"
@@ -151,9 +156,11 @@ export default function TicketDetailDialog({
                   </a>
                 </Row>
               )}
-              {d.components.length > 0 && <Row label="Componentes">{d.components.join(', ')}</Row>}
+              {d.components.length > 0 && (
+                <Row label={t('detail.components')}>{d.components.join(', ')}</Row>
+              )}
               {d.labels.length > 0 && (
-                <Row label="Etiquetas">
+                <Row label={t('detail.labels')}>
                   <span className="flex flex-wrap gap-1.5">
                     {d.labels.map((l) => (
                       <span key={l} className="badge bg-accent-soft font-mono text-accent">
@@ -166,17 +173,19 @@ export default function TicketDetailDialog({
             </dl>
 
             <section className="flex flex-col gap-2.5">
-              <h3 className="label">## Descripción</h3>
+              <h3 className="label">## {t('detail.description')}</h3>
               {d.description ? (
                 <Markdown>{d.description}</Markdown>
               ) : (
-                <p className="text-[12.5px] text-ink-5">Este ticket no tiene descripción.</p>
+                <p className="text-[12.5px] text-ink-5">{t('detail.noDescription')}</p>
               )}
             </section>
 
             {d.comments.length > 0 && (
               <section className="flex flex-col gap-2.5">
-                <h3 className="label">## Comentarios ({d.comments.length})</h3>
+                <h3 className="label">
+                  ## {t('detail.comments')} ({d.comments.length})
+                </h3>
                 <ul className="flex flex-col gap-2.5">
                   {d.comments.map((c) => (
                     <li
@@ -186,7 +195,7 @@ export default function TicketDetailDialog({
                       <div className="flex items-center gap-2 text-[11.5px] text-ink-5">
                         <Avatar name={c.author} src={c.avatar} />
                         <span className="font-semibold text-ink-3">{c.author}</span>
-                        <span>{relativeTime(c.at)}</span>
+                        <span>{rel(c.at)}</span>
                       </div>
                       <Markdown>{c.body}</Markdown>
                     </li>

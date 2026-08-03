@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { ActivityResponse, Health, Ticket, TicketActivity, TicketsResponse } from './types'
-import { getJson, relativeTime } from './api'
+import type {
+  ActivityResponse,
+  Health,
+  SetupState,
+  Ticket,
+  TicketActivity,
+  TicketsResponse,
+} from './types'
+import { getJson } from './api'
 import TicketCard from './TicketCard'
 import BranchDialog from './BranchDialog'
 import WorktreesDialog from './WorktreesDialog'
 import SettingsDialog from './SettingsDialog'
 import TicketDetailDialog from './TicketDetailDialog'
+import Onboarding from './Onboarding'
 import { readTheme, watchSystemTheme } from './theme'
 import { Button, Key } from './ui'
+import { useT } from './LocaleProvider'
 
 type Load =
   | { status: 'loading' }
@@ -30,6 +39,7 @@ function Dot() {
 }
 
 export default function App() {
+  const { t, rel } = useT()
   const [load, setLoad] = useState<Load>({ status: 'loading' })
   const [health, setHealth] = useState<Health | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -38,6 +48,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [activity, setActivity] = useState<Record<string, TicketActivity>>({})
   const [detail, setDetail] = useState<Ticket | null>(null)
+  const [setup, setSetup] = useState<SetupState | null>(null)
 
   const fetchTickets = useCallback(async (fresh: boolean) => {
     if (fresh) setRefreshing(true)
@@ -65,22 +76,39 @@ export default function App() {
       .catch(() => setActivity({}))
   }, [])
 
-  useEffect(() => {
-    void fetchTickets(false)
-    refreshHealth()
-    refreshActivity()
+  // El estado de configuracion manda: sin sitio de Jira ni proyectos no tiene
+  // sentido consultar nada, y pedirlo solo produciria errores que confunden.
+  const loadSetup = useCallback(() => {
+    getJson<SetupState>('/api/setup')
+      .then((s) => {
+        setSetup(s)
+        if (s.configured) {
+          void fetchTickets(false)
+          refreshHealth()
+          refreshActivity()
+        }
+      })
+      .catch(() => setSetup(null))
   }, [fetchTickets, refreshHealth, refreshActivity])
+
+  useEffect(() => {
+    loadSetup()
+  }, [loadSetup])
 
   useEffect(() => watchSystemTheme(readTheme), [])
 
   const groups = load.status === 'ready' ? groupByProject(load.data.tickets) : []
-  const total = load.status === 'ready' ? load.data.tickets.length : null
+  const total = load.status === 'ready' ? load.data.tickets.length : 0
   const started =
-    load.status === 'ready' ? load.data.tickets.filter((t) => activity[t.key]?.worktree).length : 0
+    load.status === 'ready' ? load.data.tickets.filter((x) => activity[x.key]?.worktree).length : 0
 
   // El indice global escalona la aparicion de forma continua entre proyectos,
   // en vez de reiniciarse en cada grupo.
   let row = 0
+
+  if (setup && !setup.configured) {
+    return <Onboarding state={setup} onReady={loadSetup} />
+  }
 
   return (
     <div className="min-h-screen px-6 pt-8 pb-20">
@@ -88,35 +116,36 @@ export default function App() {
         <header className="flex flex-wrap items-start justify-between gap-5">
           <div className="flex flex-col gap-1.5">
             <h1 className="text-[25px] font-semibold tracking-tight text-ink">
-              <span className="syntax">## </span>Mi trabajo pendiente
+              <span className="syntax">## </span>
+              {t('app.title')}
             </h1>
             {load.status === 'ready' && (
               <p className="flex flex-wrap items-center gap-[7px] text-[13px] text-ink-5">
                 <span>
-                  {total} {total === 1 ? 'ticket' : 'tickets'}
+                  {total} {total === 1 ? t('common.ticket') : t('common.tickets')}
                 </span>
                 {started > 0 && (
                   <>
                     <Dot />
-                    <span className="text-ok">{started} con worktree</span>
+                    <span className="text-ok">{t('app.withWorktree', { n: started })}</span>
                   </>
                 )}
                 <Dot />
-                <span>actualizado {relativeTime(load.data.fetchedAt)}</span>
+                <span>{t('app.updated', { time: rel(load.data.fetchedAt) })}</span>
               </p>
             )}
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Button onClick={() => setShowSettings(true)}>Opciones</Button>
-            <Button onClick={() => setShowWorktrees(true)}>Worktrees</Button>
+            <Button onClick={() => setShowSettings(true)}>{t('app.settings')}</Button>
+            <Button onClick={() => setShowWorktrees(true)}>{t('app.worktrees')}</Button>
             <Button
               variant="primary"
               onClick={() => void fetchTickets(true)}
               disabled={refreshing}
               className="min-w-[104px] font-mono"
             >
-              {refreshing ? 'Actualizando…' : 'Actualizar'}
+              {refreshing ? t('app.refreshing') : t('app.refresh')}
             </Button>
           </div>
         </header>
@@ -124,7 +153,8 @@ export default function App() {
         {health && !health.ok && (
           <section className="flex flex-col gap-2 rounded-lg border border-warn-line bg-warn-panel px-4 py-3.5">
             <h2 className="text-[13px] font-semibold text-warn">
-              <span className="syntax opacity-70">&gt; </span>Configuración incompleta
+              <span className="syntax opacity-70">&gt; </span>
+              {t('app.healthTitle')}
             </h2>
             <ul className="flex flex-col gap-1.5">
               {health.problems.map((p) => (
@@ -135,17 +165,18 @@ export default function App() {
               ))}
             </ul>
             <Button variant="warn" onClick={() => setShowSettings(true)} className="mt-0.5 self-start">
-              Abrir opciones
+              {t('app.openSettings')}
             </Button>
           </section>
         )}
 
-        {load.status === 'loading' && <p className="text-[13px] text-ink-5">Consultando Jira…</p>}
+        {load.status === 'loading' && <p className="text-[13px] text-ink-5">{t('app.loading')}</p>}
 
         {load.status === 'error' && (
           <section className="rounded-lg border border-danger-line bg-danger-panel px-4 py-3.5">
             <h2 className="text-[13px] font-semibold text-danger">
-              <span className="syntax opacity-70">&gt; </span>No pude traer los tickets
+              <span className="syntax opacity-70">&gt; </span>
+              {t('app.errorTitle')}
             </h2>
             <p className="mt-1.5 text-[12.5px] text-ink-3">{load.message}</p>
           </section>
@@ -153,9 +184,7 @@ export default function App() {
 
         {load.status === 'ready' && total === 0 && (
           <div className="rounded-lg border border-line bg-card px-4 py-12 text-center">
-            <p className="text-[13px] text-ink-5">
-              No tienes tickets asignados en los status configurados.
-            </p>
+            <p className="text-[13px] text-ink-5">{t('app.empty')}</p>
           </div>
         )}
 
@@ -165,15 +194,15 @@ export default function App() {
               <Key>{projectKey}</Key>
               <span className="text-[13px] font-medium text-ink-3">{tickets[0]?.projectName}</span>
               <span className="text-[11.5px] text-ink-6">
-                {tickets.length} {tickets.length === 1 ? 'ticket' : 'tickets'}
+                {tickets.length} {tickets.length === 1 ? t('common.ticket') : t('common.tickets')}
               </span>
             </h2>
             <div className="flex flex-col gap-2">
-              {tickets.map((t) => (
+              {tickets.map((x) => (
                 <TicketCard
-                  key={t.key}
-                  ticket={t}
-                  activity={activity[t.key]}
+                  key={x.key}
+                  ticket={x}
+                  activity={activity[x.key]}
                   index={row++}
                   onInitialize={setSelected}
                   onDetail={setDetail}

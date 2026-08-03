@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useT } from './LocaleProvider'
 
 /**
  * Primitivas compartidas de la interfaz.
@@ -159,6 +160,8 @@ export function Modal({
   maxWidth?: string
   children: React.ReactNode
 }) {
+  const { t } = useT()
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -185,7 +188,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Cerrar"
+            aria-label={t('common.close')}
             className="shrink-0 cursor-pointer rounded-md border border-transparent px-2 py-1 font-mono text-[13px] text-ink-5 hover:bg-control-hover hover:text-ink"
           >
             ✕

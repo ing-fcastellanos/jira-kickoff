@@ -1,0 +1,139 @@
+/**
+ * Mensajes del servidor que acaban en la pantalla del usuario.
+ *
+ * Los errores se lanzan en git, en Jira o al validar, muy lejos de la peticion
+ * que los provoco, asi que no pueden traducirse donde nacen: viajan como clave
+ * mas variables y se resuelven en el borde HTTP, que es el unico punto que
+ * conoce el idioma del cliente.
+ */
+
+export const enMessages = {
+  'err.credentials': 'Jira rejected the credentials: check the email and the token.',
+  'err.unreachable': 'Could not reach {site}: {detail}',
+  'err.jiraStatus': 'Jira responded {status}',
+  'err.missingCredentials': 'Jira credentials are missing. Set them up in the panel.',
+  'err.noProjects': 'No project is active. Enable one in Settings.',
+  'err.gitTimeout': '`git {command}` took longer than {seconds}s and was cancelled.',
+  'err.ticketNotFound': '{ticket} is not among your open tickets.',
+  'err.projectNotConfigured': 'Project {project} is not configured.',
+  'err.invalidBranch': '"{branch}" is not a valid branch name.',
+  'err.urlTooLong':
+    'The prompt produces a {length}-character URL, over the command line limit. Shorten it and try again. The worktree is already created at {worktree}.',
+  'err.worktreeOtherBranch':
+    'There is already a worktree at {path} on branch "{branch}". Pick that branch to resume it, or remove it with `git worktree remove`.',
+  'err.worktreeOrphanFolder':
+    'The folder {path} exists but git does not know it as a worktree. Delete it or run `git worktree prune` in {repo}.',
+  'err.branchInUse':
+    'Branch "{branch}" is already used by worktree {path}. Git does not allow the same branch in two worktrees.',
+  'err.outsideWorktrees': '{path} is outside the worktrees folder of {project}. Not touching it.',
+  'err.worktreeUnknown': 'git does not know any worktree at {path}.',
+  'err.worktreeHasWork': 'It has {what}. They would be lost.',
+  'err.losesUncommitted': 'uncommitted changes',
+  'err.losesUnpushed': '{n} unpushed commit(s)',
+  'err.editorFailed': 'Could not run "{command}": {detail}',
+  'err.editorExit': '"{command}" exited with code {code}. Is it on your PATH?',
+  'err.configMissing': 'The configuration has errors:\n{detail}',
+  'err.notJson': '{path} is not valid JSON: {detail}',
+  'err.badPort': 'PORT="{value}" is not an integer.',
+  'err.badSite': '"{site}" is not a valid address.',
+  'err.checkFailed': 'Could not verify the credentials: {detail}',
+  'err.portsBusy': 'Ports {from}–{to} are busy. Free one or set PORT.',
+} as const
+
+export type MessageKey = keyof typeof enMessages
+
+const esMessages: Record<MessageKey, string> = {
+  'err.credentials': 'Jira rechazó las credenciales: comprueba el correo y el token.',
+  'err.unreachable': 'No pude alcanzar {site}: {detail}',
+  'err.jiraStatus': 'Jira respondió {status}',
+  'err.missingCredentials': 'Faltan las credenciales de Jira. Configúralas en el panel.',
+  'err.noProjects': 'No hay ningún proyecto activo. Activa alguno en Opciones.',
+  'err.gitTimeout': '`git {command}` excedió {seconds}s y fue cancelado.',
+  'err.ticketNotFound': '{ticket} no está entre tus tickets abiertos.',
+  'err.projectNotConfigured': 'El proyecto {project} no está configurado.',
+  'err.invalidBranch': '"{branch}" no es un nombre de rama válido.',
+  'err.urlTooLong':
+    'El prompt genera una URL de {length} caracteres, por encima del límite de la línea de comandos. Acórtalo y vuelve a intentarlo. El worktree ya quedó creado en {worktree}.',
+  'err.worktreeOtherBranch':
+    'Ya hay un worktree en {path} sobre la rama "{branch}". Elige esa rama para retomarlo, o quítalo con `git worktree remove`.',
+  'err.worktreeOrphanFolder':
+    'La carpeta {path} existe pero git no la conoce como worktree. Bórrala o ejecuta `git worktree prune` en {repo}.',
+  'err.branchInUse':
+    'La rama "{branch}" ya está usada por el worktree {path}. Git no permite la misma rama en dos worktrees.',
+  'err.outsideWorktrees': '{path} está fuera de la carpeta de worktrees de {project}. No se toca.',
+  'err.worktreeUnknown': 'git no conoce ningún worktree en {path}.',
+  'err.worktreeHasWork': 'Tiene {what}. Se perderían.',
+  'err.losesUncommitted': 'cambios sin commitear',
+  'err.losesUnpushed': '{n} commit(s) sin subir',
+  'err.editorFailed': 'No pude ejecutar "{command}": {detail}',
+  'err.editorExit': '"{command}" terminó con código {code}. ¿Está en el PATH?',
+  'err.configMissing': 'La configuración tiene errores:\n{detail}',
+  'err.notJson': '{path} no es JSON válido: {detail}',
+  'err.badPort': 'PORT="{value}" no es un entero.',
+  'err.badSite': '"{site}" no es una dirección válida.',
+  'err.checkFailed': 'No pude comprobar las credenciales: {detail}',
+  'err.portsBusy': 'Los puertos {from}–{to} están ocupados. Libera uno o define PORT.',
+}
+
+const CATALOGS = { en: enMessages, es: esMessages }
+export type Lang = keyof typeof CATALOGS
+
+export type Vars = Record<string, string | number>
+
+export function message(lang: Lang, key: MessageKey, vars?: Vars): string {
+  let out: string = CATALOGS[lang][key] ?? enMessages[key]
+  if (vars) {
+    for (const [name, value] of Object.entries(vars)) {
+      out = out.replaceAll(`{${name}}`, String(value))
+    }
+  }
+  return out
+}
+
+/**
+ * Idioma pedido por el navegador. Solo se mira el prefijo: `es-419` y `es-ES`
+ * comparten catalogo, y afinar mas seria prometer una precision que no hay.
+ */
+export function langFrom(acceptLanguage: string | undefined): Lang {
+  return acceptLanguage?.trim().toLowerCase().startsWith('es') ? 'es' : 'en'
+}
+
+/**
+ * Error que sabe traducirse. El `message` de Error se rellena en ingles para
+ * que los logs y las trazas sigan siendo legibles sin contexto de peticion.
+ */
+export class LocalizedError extends Error {
+  constructor(
+    readonly key: MessageKey,
+    readonly vars?: Vars,
+    readonly status = 400,
+  ) {
+    super(message('en', key, vars))
+  }
+
+  localized(lang: Lang): string {
+    return message(lang, this.key, this.vars)
+  }
+}
+
+/**
+ * Error cuyo texto viene de fuera —stderr de git, el cuerpo de error de Jira— y
+ * por tanto no se traduce. Inventarle una version en otro idioma seria sustituir
+ * el diagnostico real por una parafrasis nuestra.
+ */
+export class RawError extends LocalizedError {
+  constructor(
+    private readonly detail: string,
+    status = 502,
+  ) {
+    super('err.jiraStatus', { status }, status)
+  }
+
+  override get message(): string {
+    return this.detail
+  }
+
+  override localized(): string {
+    return this.detail
+  }
+}
