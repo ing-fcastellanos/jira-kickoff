@@ -1,0 +1,79 @@
+name: Bug report
+description: Something does not work the way the README says it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: if this is a security problem, close this and use
+        [private reporting](https://github.com/ing-fcastellanos/jira-kickoff/security/advisories/new)
+        instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+      placeholder: |
+        I clicked Initialize on ABC-123 and the worktree was created, but the
+        session never opened. The panel showed the "copy the prompt" fallback.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest sequence that shows it.
+      placeholder: |
+        1. Configure a project pointing at …
+        2. Open the panel and click …
+        3. …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      description: >-
+        The deep link is only verified on Windows; `open` and `xdg-open` are
+        implemented but untested, so this matters.
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Paste the output of `npx jira-kickoff --version`.
+      placeholder: jira-kickoff 0.1.0 · node v22.11.0 · darwin arm64
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Server output
+      description: >-
+        Whatever the terminal running the server printed, plus any errors from
+        the browser console. Pasted as text is easier to search than a
+        screenshot.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant config
+      description: >-
+        The part of `config.json` involved — branch pattern, editor command,
+        worktrees folder. **Never paste `credentials.json` or your Jira token.**
+      render: json
+    validations:
+      required: false

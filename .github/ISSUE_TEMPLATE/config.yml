@@ -1,0 +1,11 @@
+# Sin issue en blanco: las dos plantillas cubren lo accionable y el resto va a
+# los enlaces de abajo.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/ing-fcastellanos/jira-kickoff/security/advisories/new
+    about: Do not open a public issue. Report it privately here.
+  - name: Question about setting up or contributing
+    url: https://github.com/ing-fcastellanos/jira-kickoff/blob/main/CONTRIBUTING.md
+    about: CONTRIBUTING.md covers the dev setup, the tests, and what is in scope.
