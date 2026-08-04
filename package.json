@@ -1,6 +1,6 @@
 {
   "name": "jira-kickoff",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Panel local que lleva un ticket de Jira a una sesión de Claude Code: crea la rama, el worktree y abre la sesión con el prompt precargado",
   "license": "MIT",
