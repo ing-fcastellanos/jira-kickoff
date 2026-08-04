@@ -75,9 +75,13 @@ If you are unsure, open an issue before writing the code. It is easier to say
 There is no linter, so the rule is simply: match the file you are editing. In
 practice that means no semicolons, single quotes, two-space indent, and comments
 that explain *why* rather than *what* — the existing ones mostly document a
-decision or a constraint that cost time to find. Comments, commit messages and
-what the server prints to the terminal are in Spanish; the web UI and these docs
-are in English.
+decision or a constraint that cost time to find.
+
+Code, comments and documentation are in English. The web UI ships English and
+Spanish through `web/src/i18n.ts` and the server through `src/messages.ts`: the
+English catalogue defines the keys and the Spanish one is typed against it, so a
+new string that is not translated does not compile. What the server prints to the
+terminal, and commit messages, are still in Spanish.
 
 Write commit messages in the imperative and keep the subject short enough to
 read in a list.

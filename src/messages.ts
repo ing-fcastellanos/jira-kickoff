@@ -1,10 +1,10 @@
 /**
- * Mensajes del servidor que acaban en la pantalla del usuario.
+ * Server messages that end up on the user's screen.
  *
- * Los errores se lanzan en git, en Jira o al validar, muy lejos de la peticion
- * que los provoco, asi que no pueden traducirse donde nacen: viajan como clave
- * mas variables y se resuelven en el borde HTTP, que es el unico punto que
- * conoce el idioma del cliente.
+ * The errors are thrown in git, in Jira or while validating, far away from the
+ * request that caused them, so they cannot be translated where they are born:
+ * they travel as a key plus variables and are resolved at the HTTP edge, which
+ * is the only point that knows the client's language.
  */
 
 export const enMessages = {
@@ -91,16 +91,17 @@ export function message(lang: Lang, key: MessageKey, vars?: Vars): string {
 }
 
 /**
- * Idioma pedido por el navegador. Solo se mira el prefijo: `es-419` y `es-ES`
- * comparten catalogo, y afinar mas seria prometer una precision que no hay.
+ * Language requested by the browser. Only the prefix is looked at: `es-419` and
+ * `es-ES` share a catalogue, and being finer would promise a precision that is
+ * not there.
  */
 export function langFrom(acceptLanguage: string | undefined): Lang {
   return acceptLanguage?.trim().toLowerCase().startsWith('es') ? 'es' : 'en'
 }
 
 /**
- * Error que sabe traducirse. El `message` de Error se rellena en ingles para
- * que los logs y las trazas sigan siendo legibles sin contexto de peticion.
+ * An error that knows how to translate itself. Error's `message` is filled in
+ * English so that logs and traces stay readable without request context.
  */
 export class LocalizedError extends Error {
   constructor(
@@ -117,9 +118,9 @@ export class LocalizedError extends Error {
 }
 
 /**
- * Error cuyo texto viene de fuera —stderr de git, el cuerpo de error de Jira— y
- * por tanto no se traduce. Inventarle una version en otro idioma seria sustituir
- * el diagnostico real por una parafrasis nuestra.
+ * An error whose text comes from outside —git's stderr, Jira's error body— and
+ * is therefore not translated. Inventing a version in another language would
+ * replace the real diagnostics with a paraphrase of ours.
  */
 export class RawError extends LocalizedError {
   constructor(

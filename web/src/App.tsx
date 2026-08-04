@@ -30,7 +30,7 @@ function groupByProject(tickets: Ticket[]): [string, Ticket[]][] {
     if (list) list.push(t)
     else groups.set(t.projectKey, [t])
   }
-  // El orden lo fija Jira por `updated desc`; el proyecto con lo mas reciente va arriba.
+  // The order is set by Jira with `updated desc`; the project with the most recent goes on top.
   return [...groups.entries()]
 }
 
@@ -68,16 +68,16 @@ export default function App() {
       .catch(() => setHealth(null))
   }, [])
 
-  // El seguimiento se pide aparte de los tickets: consulta git local y no debe
-  // retrasar la lista, que es lo primero que quieres ver.
+  // Tracking is requested apart from the tickets: it queries local git and must
+  // not delay the list, which is the first thing you want to see.
   const refreshActivity = useCallback(() => {
     getJson<ActivityResponse>('/api/activity')
       .then((r) => setActivity(r.byTicket))
       .catch(() => setActivity({}))
   }, [])
 
-  // El estado de configuracion manda: sin sitio de Jira ni proyectos no tiene
-  // sentido consultar nada, y pedirlo solo produciria errores que confunden.
+  // The configuration state rules: with no Jira site and no projects there is no
+  // point querying anything, and asking would only produce confusing errors.
   const loadSetup = useCallback(() => {
     getJson<SetupState>('/api/setup')
       .then((s) => {
@@ -102,8 +102,8 @@ export default function App() {
   const started =
     load.status === 'ready' ? load.data.tickets.filter((x) => activity[x.key]?.worktree).length : 0
 
-  // El indice global escalona la aparicion de forma continua entre proyectos,
-  // en vez de reiniciarse en cada grupo.
+  // The global index staggers the appearance continuously across projects,
+  // instead of restarting on every group.
   let row = 0
 
   if (setup && !setup.configured) {
@@ -231,7 +231,7 @@ export default function App() {
         <WorktreesDialog
           onClose={() => {
             setShowWorktrees(false)
-            // Borrar un worktree cambia el seguimiento de su ticket.
+            // Deleting a worktree changes the tracking of its ticket.
             refreshActivity()
           }}
         />
@@ -240,7 +240,7 @@ export default function App() {
         <SettingsDialog
           onClose={() => setShowSettings(false)}
           onSaved={() => {
-            // Cambiar proyectos, statuses o el filtro cambia lo que Jira devuelve.
+            // Changing projects, statuses or the filter changes what Jira returns.
             void fetchTickets(true)
             refreshHealth()
           }}

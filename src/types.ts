@@ -44,7 +44,7 @@ export interface InitializeResult {
   worktreeCreated: boolean
   deepLink: string
   launchMode: 'open' | 'clipboard'
-  /** El handler de protocolos acepto la invocacion; no que la sesion se haya abierto. */
+  /** The protocol handler accepted the invocation; not that the session opened. */
   launched: boolean
   launchError: string | null
 }
@@ -54,7 +54,7 @@ export interface TicketComment {
   author: string
   avatar: string | null
   at: string
-  /** Markdown, convertido desde el ADF que devuelve Jira. */
+  /** Markdown, converted from the ADF that Jira returns. */
   body: string
 }
 
@@ -75,13 +75,13 @@ export interface TicketDetail {
   labels: string[]
   components: string[]
   parent: { key: string; summary: string; url: string } | null
-  /** Markdown, convertido desde el ADF que devuelve Jira. */
+  /** Markdown, converted from the ADF that Jira returns. */
   description: string
   comments: TicketComment[]
 }
 
 export interface TicketActivity {
-  /** Nulo cuando solo consta en el historial y ya no hay worktree. */
+  /** Null when it only appears in the history and there is no worktree left. */
   projectKey: string | null
   worktree: { path: string; branch: string | null; dirty: boolean } | null
   lastInitializedAt: string | null
@@ -100,7 +100,7 @@ export interface WorktreeInfo {
   path: string
   name: string
   branch: string | null
-  /** Vive dentro de la carpeta de worktrees configurada; solo estos se pueden borrar. */
+  /** Lives inside the configured worktree folder; only these can be deleted. */
   managed: boolean
   isMain: boolean
   dirty: boolean
@@ -112,7 +112,7 @@ export interface WorktreeInfo {
 export interface WorktreesResponse {
   worktrees: WorktreeInfo[]
   errors: { projectKey: string; error: string }[]
-  /** Para rotular el boton de abrir sin que la UI tenga que pedir los settings. */
+  /** To label the open button without the UI having to ask for the settings. */
   editorLabel: string
   fetchedAt: string
 }
@@ -121,12 +121,12 @@ export interface BranchesResponse {
   projectKey: string
   repo: string
   baseBranch: string
-  /** Nombre propuesto a partir del patron de config.json. */
+  /** Name suggested from the pattern in config.json. */
   suggested: string
-  /** Ramas que ya mencionan este ticket, en cualquier mayuscula. */
+  /** Branches that already mention this ticket, in any casing. */
   matches: Branch[]
   branches: Branch[]
-  /** Si el remoto no respondio: la lista es solo local y esto explica por que. */
+  /** If the remote did not answer: the list is local only and this says why. */
   remoteError: string | null
   fetchedAt: string
 }

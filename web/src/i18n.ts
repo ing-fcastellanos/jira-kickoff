@@ -1,9 +1,10 @@
 /**
- * Traducciones de la interfaz.
+ * Interface translations.
  *
- * El catalogo ingles define las claves y el espanol se tipa contra el, asi que
- * anadir una cadena sin traducirla no compila. Es la unica forma de que una
- * traduccion incompleta se descubra al construir y no en la pantalla de alguien.
+ * The English catalogue defines the keys and the Spanish one is typed against
+ * it, so adding a string without translating it does not compile. It is the only
+ * way for an incomplete translation to be found at build time and not on
+ * somebody's screen.
  */
 
 export const en = {
@@ -417,7 +418,7 @@ export const LOCALE_NAMES: Record<Locale, string> = { en: 'English', es: 'Españ
 
 const KEY = 'jtw.locale'
 
-/** Ingles por defecto: es el idioma en el que mas gente puede usar la herramienta. */
+/** English by default: it is the language in which most people can use the tool. */
 export function readLocale(): Locale {
   const stored = localStorage.getItem(KEY)
   return stored === 'es' || stored === 'en' ? stored : 'en'
@@ -428,7 +429,7 @@ export function writeLocale(locale: Locale): void {
   document.documentElement.lang = locale
 }
 
-/** Sustituye `{nombre}` por su valor. Sin plurales: los casos se dan como claves. */
+/** Replaces `{name}` with its value. No plurals: the cases are given as keys. */
 export function translate(locale: Locale, key: Key, vars?: Record<string, string | number>): string {
   let out: string = LOCALES[locale][key] ?? en[key]
   if (vars) {

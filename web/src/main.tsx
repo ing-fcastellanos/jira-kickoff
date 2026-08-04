@@ -5,7 +5,7 @@ import { LocaleProvider } from './LocaleProvider'
 import './index.css'
 import { applyTheme, readTheme } from './theme'
 
-// Antes del primer render, para que no haya un parpadeo en claro.
+// Before the first render, so that there is no flash of light theme.
 applyTheme(readTheme())
 
 const container = document.getElementById('root')

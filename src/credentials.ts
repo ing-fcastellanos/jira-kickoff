@@ -13,10 +13,10 @@ export interface Credentials {
 }
 
 /**
- * Credenciales de Jira.
+ * Jira credentials.
  *
- * Las variables de entorno ganan al archivo: es lo que permite ejecutar en CI o
- * en un contenedor sin dejar el token escrito en disco.
+ * Environment variables win over the file: that is what makes it possible to run
+ * in CI or in a container without leaving the token written on disk.
  */
 export function readCredentials(): Credentials | null {
   const email = process.env.JIRA_EMAIL?.trim()
@@ -41,11 +41,11 @@ export function writeCredentials(creds: Credentials): void {
   const tmp = `${path}.tmp`
   writeFileSync(tmp, `${JSON.stringify(creds, null, 2)}\n`, 'utf8')
 
-  // Solo el dueño puede leerlo. En Windows no aplica y chmod es inofensivo.
+  // Only the owner can read it. On Windows it does not apply and chmod is harmless.
   try {
     chmodSync(tmp, 0o600)
   } catch {
-    /* sistemas sin permisos POSIX */
+    /* systems without POSIX permissions */
   }
 
   renameSync(tmp, path)

@@ -26,14 +26,14 @@ const openEditorBody = z.object({
 const removeBody = z.object({
   projectKey: z.string().min(1),
   path: z.string().min(1),
-  /** Necesario cuando hay cambios sin commitear o commits sin subir. */
+  /** Required when there are uncommitted changes or unpushed commits. */
   force: z.boolean().default(false),
   deleteBranch: z.boolean().default(false),
 })
 
 /**
- * Solo se puede tocar lo que esta dentro de la carpeta de worktrees del proyecto.
- * Sin esta comprobacion, un `path` manipulado borraria cualquier carpeta del disco.
+ * Only what is inside the project's worktree folder can be touched.
+ * Without this check, a tampered `path` would delete any folder on the disk.
  */
 function isInsideWorktreeDir(repo: string, worktreesDir: string, candidate: string): boolean {
   const root = resolve(repo, worktreesDir)
@@ -71,13 +71,13 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
                 isMain,
               }
 
-              // El worktree principal no se inspecciona: no es candidato a nada.
+              // The main worktree is not inspected: it is a candidate for nothing.
               if (isMain) {
                 return { ...base, dirty: false, unpushed: 0, remoteBranchExists: false, merged: false }
               }
 
-              // Un worktree en detached HEAD no tiene rama que comparar, pero si
-              // puede tener trabajo sin guardar: eso hay que mirarlo igual.
+              // A worktree in detached HEAD has no branch to compare, but it can
+              // have unsaved work: that has to be looked at all the same.
               const dirty = await isDirty(path).catch(() => false)
               if (!branch) {
                 return { ...base, dirty, unpushed: 0, remoteBranchExists: false, merged: false }
@@ -127,9 +127,9 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
       return reply.status(400).send({ error: say(reply, 'err.projectNotConfigured', { project: projectKey }) })
     }
 
-    // Mismo cerrojo que el borrado: solo se abre lo que este dentro de la
-    // carpeta de worktrees. Sin esto se podria lanzar el editor sobre
-    // cualquier ruta del disco que llegue por la peticion.
+    // Same lock as deleting: only what is inside the worktree folder is opened.
+    // Without this, the editor could be launched on any path on the disk that
+    // arrives in the request.
     if (!isInsideWorktreeDir(project.repo, config.worktrees.dir, path)) {
       return reply.status(400).send({
         error: say(reply, 'err.outsideWorktrees', { path, project: projectKey }),
@@ -175,7 +175,7 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
 
       const branch = entry.branch
 
-      // Sin rama tampoco se da por seguro: un detached HEAD puede tener trabajo vivo.
+      // No branch is not taken as safe either: a detached HEAD can have live work.
       if (!force) {
         const dirty = await isDirty(path).catch(() => false)
         let unpushed = 0

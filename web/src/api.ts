@@ -1,10 +1,10 @@
 import { translate, type Key, type Locale } from './i18n'
 
 /*
- * El cliente HTTP no es un componente, asi que no puede usar el hook de idioma.
- * En vez de arrastrar el locale por cada llamada, el proveedor registra aqui el
- * idioma activo: las dos cadenas que este modulo produce salen traducidas sin
- * que ninguna firma cambie.
+ * The HTTP client is not a component, so it cannot use the language hook.
+ * Instead of dragging the locale through every call, the provider registers the
+ * active language here: the two strings this module produces come out translated
+ * without a single signature changing.
  */
 let locale: Locale = 'en'
 export function setApiLocale(next: Locale): void {
@@ -13,17 +13,17 @@ export function setApiLocale(next: Locale): void {
 const t = (key: Key, vars?: Record<string, string | number>) => translate(locale, key, vars)
 
 /**
- * El idioma elegido en Opciones viaja en cada peticion.
+ * The language chosen in Options travels on every request.
  *
- * Sin esto el servidor responderia en el idioma del navegador, que puede no ser
- * el que el usuario escogio: elegir espanol con Chrome en ingles daria una
- * interfaz en espanol con errores en ingles.
+ * Without this the server would answer in the browser's language, which may not
+ * be the one the user picked: choosing Spanish with Chrome in English would give
+ * a Spanish interface with English errors.
  */
 function headers(extra?: Record<string, string>): Record<string, string> {
   return { 'Accept-Language': locale, ...extra }
 }
 
-/** El servidor devuelve `{ error }` en los fallos; ese texto ya viene redactado para leerse. */
+/** The server returns `{ error }` on failures; that text already reads as prose. */
 export async function getJson<T>(url: string): Promise<T> {
   let res: Response
   try {

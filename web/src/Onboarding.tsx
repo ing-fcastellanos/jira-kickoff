@@ -30,12 +30,12 @@ function Step({
 }
 
 /**
- * Primer arranque.
+ * First start.
  *
- * Ejecutado con `npx` no hay repositorio que clonar ni archivos que editar a
- * mano, asi que la configuracion minima —credenciales y un proyecto— se pide
- * aqui. El token se valida contra Jira antes de escribirlo: dejarlo en disco y
- * fallar despues obligaria al usuario a adivinar por que no ve nada.
+ * Run with `npx` there is no repository to clone and no files to edit by hand,
+ * so the minimum configuration —credentials and one project— is asked for here.
+ * The token is validated against Jira before writing it: leaving it on disk and
+ * failing afterwards would force the user to guess why they see nothing.
  */
 export default function Onboarding({ state, onReady }: { state: SetupState; onReady: () => void }) {
   const { t } = useT()
@@ -77,8 +77,8 @@ export default function Onboarding({ state, onReady }: { state: SetupState; onRe
     setSavingProject(true)
     setProjectError(null)
     try {
-      // Se relee la configuracion en vez de reconstruirla: el asistente no debe
-      // pisar lo que el propio servidor acaba de guardar en el paso anterior.
+      // The configuration is re-read instead of rebuilt: the wizard must not
+      // trample what the server itself just saved in the previous step.
       const current = await getJson<{ config: FileConfig }>('/api/settings')
       const key = projectKey.trim().toUpperCase()
       await putJson('/api/settings', {

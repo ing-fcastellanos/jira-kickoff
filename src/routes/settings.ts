@@ -4,7 +4,7 @@ import { ConfigError, type ConfigStore, type FileConfig } from '../config'
 import { suggestBranchName } from '../branch-name'
 import { PROMPT_MAX_LENGTH, PROMPT_WARN_LENGTH } from '../prompt'
 
-/** Placeholders que la UI ofrece; la lista vive aqui para no duplicarla en el cliente. */
+/** Placeholders the UI offers; the list lives here so it is not duplicated in the client. */
 const PLACEHOLDERS = [
   { token: '{{ticket}}', description: 'Clave del ticket, p. ej. ABC-123' },
   { token: '{{summary}}', description: 'Titulo del ticket' },
@@ -33,7 +33,7 @@ export interface SettingsResponse {
   placeholders: typeof PLACEHOLDERS
   branchPlaceholders: typeof BRANCH_PLACEHOLDERS
   promptLimits: { max: number; warn: number }
-  /** Solo informativo: el token vive en .env y no se edita desde la web. */
+  /** Informational only: the token lives in .env and is not edited from the web. */
   credentials: { configured: boolean; email: string | null }
 }
 
@@ -66,7 +66,7 @@ export const settingsRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
     }
   })
 
-  /** Vista previa del nombre de rama sin llegar a guardar el patron. */
+  /** Preview of the branch name without actually saving the pattern. */
   app.post('/api/settings/preview-branch', async (req, reply) => {
     const parsed = previewBody.safeParse(req.body)
     if (!parsed.success) {

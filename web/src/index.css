@@ -1,9 +1,9 @@
 @import 'tailwindcss';
 
 /*
- * Autoalojadas: el panel es local y no debe depender de la red para pintarse.
- * Solo el subconjunto latino: los demas alfabetos multiplicaban por cinco el
- * peso del paquete publicado sin que ninguna cadena de la interfaz los use.
+ * Self-hosted: the panel is local and must not depend on the network to paint
+ * itself. Latin subset only: the other alphabets multiplied the published
+ * package weight by five without a single interface string using them.
  */
 @import '@fontsource/ibm-plex-mono/latin-400.css';
 @import '@fontsource/ibm-plex-mono/latin-500.css';
@@ -13,19 +13,19 @@
 @import '@fontsource/ibm-plex-sans/latin-600.css';
 
 /*
- * Por defecto `dark:` en Tailwind v4 sigue a prefers-color-scheme, lo que haria
- * imposible elegir el tema a mano. Con esta variante depende de una clase en
- * <html>, que es lo que aplica theme.ts.
+ * By default `dark:` in Tailwind v4 follows prefers-color-scheme, which would
+ * make choosing the theme by hand impossible. With this variant it depends on a
+ * class on <html>, which is what theme.ts applies.
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Direccion visual 3b "Markdown": gris medio en capas, acento lavanda y sintaxis
- * visible (##, ###, backticks) como recurso grafico.
+ * Visual direction 3b "Markdown": layered mid grey, lavender accent and visible
+ * syntax (##, ###, backticks) as a graphic device.
  *
- * Las utilidades apuntan a variables que cambian con el tema, asi que los
- * componentes escriben `bg-panel` una sola vez en vez de arrastrar un `dark:`
- * por cada color. El tema deja de ser una variante repetida y pasa a ser capa.
+ * The utilities point at variables that change with the theme, so components
+ * write `bg-panel` once instead of dragging a `dark:` along for every colour.
+ * The theme stops being a repeated variant and becomes a layer.
  */
 @theme {
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -81,9 +81,9 @@
 }
 
 /*
- * `html.dark` y no `.dark`: con un solo nombre de clase empataria en
- * especificidad con el `:root` de la variante clara y ganaria el que fuera
- * despues en el archivo. Cualificarlo lo hace independiente del orden.
+ * `html.dark` and not `.dark`: with a single class name it would tie in
+ * specificity with the light variant's `:root` and whichever came later in the
+ * file would win. Qualifying it makes it independent of order.
  */
 html.dark {
   --page: #16181e;
@@ -139,9 +139,9 @@ html.dark {
 }
 
 /*
- * El diseño solo define la variante oscura. La clara se deriva conservando el
- * mismo acento y las mismas relaciones de capa, porque Opciones sigue ofreciendo
- * los tres modos: quitarla seria romper una funcion que ya existe.
+ * The design only defines the dark variant. The light one is derived keeping the
+ * same accent and the same layer relationships, because Options still offers all
+ * three modes: dropping it would break a feature that already exists.
  */
 :root {
   --page: #f3f3f7;
@@ -217,8 +217,8 @@ html.dark {
 
 @layer components {
   /*
-   * Marca de sintaxis: los `##`, `###`, `-` y `>` que preceden a los titulos.
-   * Es el recurso que da nombre a la direccion, asi que vive en un solo sitio.
+   * Syntax mark: the `##`, `###`, `-` and `>` that precede the titles.
+   * It is the device the direction is named after, so it lives in one place.
    */
   .syntax {
     font-family: var(--font-mono);
@@ -226,7 +226,7 @@ html.dark {
     color: var(--accent);
   }
 
-  /* Etiqueta de seccion dentro del detalle: versalitas en mono. */
+  /* Section label inside the detail: small caps in mono. */
   .label {
     font-family: var(--font-mono);
     font-size: 11px;
@@ -236,7 +236,7 @@ html.dark {
     color: var(--ink-5);
   }
 
-  /* Insignia compacta de estado, la misma forma en tickets y worktrees. */
+  /* Compact status badge, the same shape in tickets and worktrees. */
   .badge {
     border-radius: 3px;
     padding: 2px 7px;
@@ -247,8 +247,9 @@ html.dark {
 }
 
 /*
- * Aparicion escalonada de la lista. Un solo momento coreografiado al cargar
- * rinde mas que micro-animaciones repartidas, y no estorba al escanear.
+ * Staggered appearance of the list. A single choreographed moment on load pays
+ * off more than micro-animations scattered around, and does not get in the way
+ * of scanning.
  */
 @keyframes rise {
   from {

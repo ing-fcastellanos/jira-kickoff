@@ -19,7 +19,7 @@ describe('slugify', () => {
   })
 
   it('corta en frontera de palabra', () => {
-    // 'email-logins-remove' son 19 caracteres; 'case' no cabe entero en 22.
+    // 'email-logins-remove' is 19 characters; 'case' does not fit whole in 22.
     assert.equal(slugify('Email logins remove case sensitive', 22), 'email-logins-remove')
   })
 
@@ -36,7 +36,7 @@ describe('suggestBranchName', () => {
   const pattern = 'feature/{{ticket-lower}}-{{slug}}'
 
   it('aplica el patron completo', () => {
-    // 36 caracteres de slug: por debajo del limite, no se recorta.
+    // 36 characters of slug: below the limit, so it is not trimmed.
     assert.equal(
       suggestBranchName({
         pattern,

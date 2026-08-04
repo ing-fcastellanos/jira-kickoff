@@ -37,7 +37,7 @@ export const initializeRoutes: FastifyPluginAsync<{
 }> = async (app, opts) => {
   const { store, tickets, history } = opts
 
-  /** Resuelve ticket, repo y ruta de worktree, o responde el error correspondiente. */
+  /** Resolves ticket, repo and worktree path, or answers with the matching error. */
   async function resolve(ticketKey: string, reply: FastifyReply): Promise<Resolved | null> {
     const config = store.get()
     const ticket = await tickets.find(ticketKey.toUpperCase())
@@ -107,14 +107,16 @@ export const initializeRoutes: FastifyPluginAsync<{
         return reply.status(400).send({ error: say(reply, 'err.invalidBranch', { branch }) })
       }
 
-      // `ls-remote` consulta el remoto sin actualizar refs locales, y el worktree
-      // se crea desde `origin/<base>`. Sin este fetch se partiria de una base vieja.
+      // `ls-remote` queries the remote without updating local refs, and the
+      // worktree is created from `origin/<base>`. Without this fetch it would
+      // start from a stale base.
       await fetchOrigin(r.repo)
 
       const config = store.get()
 
-      // Claude Code deduce la rama principal de `origin/HEAD`, no de la base que
-      // usamos aqui. Si el remoto declara otra, la sesion la mostrara mal.
+      // Claude Code works out the main branch from `origin/HEAD`, not from the
+      // base we use here. If the remote declares another one, the session shows
+      // it wrong.
       if (config.worktrees.alignOriginHead) {
         await setOriginHead(r.repo, r.baseBranch)
       }
@@ -126,14 +128,14 @@ export const initializeRoutes: FastifyPluginAsync<{
         baseBranch: r.baseBranch,
       })
 
-      // El deep link no puede pedir un modo de permisos, asi que se deja escrito
-      // en el worktree antes de abrir la sesion.
+      // The deep link cannot ask for a permission mode, so it is written into
+      // the worktree before opening the session.
       if (config.launch.permissionMode !== 'inherit') {
         await setWorktreePermissionMode(r.worktree, config.launch.permissionMode)
       }
 
-      // El worktree ya existe pase lo que pase con el deep link: si falla, el
-      // usuario pega el prompt a mano y no pierde ninguno de los pasos previos.
+      // The worktree already exists whatever happens with the deep link: if it
+      // fails, the user pastes the prompt by hand and loses no earlier step.
       const deepLink = buildDeepLink(prompt, r.worktree)
       if (deepLink.length > URL_SAFE_LENGTH) {
         return reply.status(400).send({
@@ -144,9 +146,9 @@ export const initializeRoutes: FastifyPluginAsync<{
         })
       }
 
-      // En modo `clipboard` no se intenta abrir nada: el worktree queda hecho y
-      // la UI ofrece el prompt para pegarlo. Es la salida cuando el deep link
-      // deja de funcionar tras una actualizacion de la app.
+      // In `clipboard` mode nothing is opened: the worktree is done and the UI
+      // offers the prompt to paste. This is the way out when the deep link stops
+      // working after an app update.
       const launchMode = config.launch.mode
       let launched = false
       let launchError: string | null = null
@@ -160,8 +162,8 @@ export const initializeRoutes: FastifyPluginAsync<{
         }
       }
 
-      // Se registra aunque el deep link falle: el worktree existe y el ticket
-      // quedo empezado, que es justo lo que el seguimiento debe reflejar.
+      // Recorded even if the deep link fails: the worktree exists and the ticket
+      // is started, which is exactly what the tracking must reflect.
       history.record({
         ticketKey: r.ticket.key,
         projectKey: r.ticket.projectKey,
@@ -184,7 +186,7 @@ export const initializeRoutes: FastifyPluginAsync<{
       }
       return result
     } catch (err) {
-      // WorktreeConflictError ya lleva su propio 409 y su clave de mensaje.
+      // WorktreeConflictError already carries its own 409 and message key.
       return replyWithError(reply, err)
     }
   })

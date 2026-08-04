@@ -1,7 +1,8 @@
 name: Release
 
-# Un tag `v*` es lo unico que publica. La version vive en package.json y el tag
-# solo la confirma: si no coinciden, el job para antes de tocar el registro.
+# A `v*` tag is the only thing that publishes. The version lives in package.json
+# and the tag only confirms it: if they disagree, the job stops before touching
+# the registry.
 on:
   push:
     tags: ['v*']
@@ -13,8 +14,8 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # crear la Release
-      id-token: write # provenance de npm
+      contents: write # create the Release
+      id-token: write # npm provenance
     environment:
       name: npm
       url: https://www.npmjs.com/package/jira-kickoff
@@ -29,18 +30,18 @@ jobs:
 
       - run: npm ci
 
-      - name: Comprobar que el tag coincide con package.json
+      - name: Check that the tag matches package.json
         run: |
           tag="${GITHUB_REF_NAME#v}"
           version="$(npm pkg get version | tr -d '"')"
           if [ "$tag" != "$version" ]; then
-            echo "::error::El tag $GITHUB_REF_NAME no coincide con la version $version de package.json"
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $version in package.json"
             exit 1
           fi
 
-      # Un tag con guion (v1.2.0-beta.1) sale como prerelease y bajo el dist-tag
-      # `next`, para que un `npx jira-kickoff` a secas no se lo lleve por delante.
-      - name: Resolver el canal
+      # A tag with a hyphen (v1.2.0-beta.1) goes out as a prerelease and under the
+      # `next` dist-tag, so that a plain `npx jira-kickoff` never picks it up.
+      - name: Resolve the channel
         id: channel
         run: |
           if [[ "$GITHUB_REF_NAME" == *-* ]]; then
@@ -51,13 +52,14 @@ jobs:
             echo "prerelease=" >> "$GITHUB_OUTPUT"
           fi
 
-      # `prepublishOnly` corre typecheck, tests y build: nada se publica sin pasarlos.
-      - name: Publicar en npm
+      # `prepublishOnly` runs typecheck, tests and build: nothing is published
+      # without passing them.
+      - name: Publish to npm
         run: npm publish --provenance --access public --tag ${{ steps.channel.outputs.npm_tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Crear la Release de GitHub
+      - name: Create the GitHub Release
         run: gh release create "$GITHUB_REF_NAME" --generate-notes ${{ steps.channel.outputs.prerelease }}
         env:
           GH_TOKEN: ${{ github.token }}

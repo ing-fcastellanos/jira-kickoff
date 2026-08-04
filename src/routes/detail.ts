@@ -7,7 +7,7 @@ import type { TicketComment, TicketDetail } from '../types'
 import { adfToMarkdown } from '../adf'
 import { replyWithError } from './errors'
 
-/** Jira devuelve varios tamanos de avatar; 24 px basta para una lista. */
+/** Jira returns several avatar sizes; 24 px is enough for a list. */
 function avatarOf(user: { avatarUrls?: Record<string, string> } | null | undefined): string | null {
   return user?.avatarUrls?.['24x24'] ?? user?.avatarUrls?.['48x48'] ?? null
 }
@@ -74,8 +74,8 @@ export const detailRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async (a
     })
 
     try {
-      // Se pide siempre fresco: el detalle se abre para leer lo ultimo del
-      // ticket, que es justo lo que una cache de lista no puede garantizar.
+      // Always requested fresh: the detail is opened to read the latest on the
+      // ticket, which is exactly what a list cache cannot guarantee.
       const issue = await client.issue(req.params.ticketKey.toUpperCase())
       return toDetail(issue, config.jira.site)
     } catch (err) {

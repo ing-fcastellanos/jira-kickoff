@@ -3,15 +3,15 @@ import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 
 /*
- * Los tests se buscan aqui en vez de con un glob en el script de npm.
+ * The tests are discovered here instead of with a glob in the npm script.
  *
- * `src/**\/*.test.ts` depende de quien expanda el patron: cmd.exe no lo hace,
- * sh sin globstar lo colapsa a un solo nivel y node solo resuelve globs desde
- * la 21. Con `engines: node >=20` eso significa que el mismo comando pasa en
- * una maquina y falla en otra -- justo lo que no puede pasar en CI.
+ * `src/**\/*.test.ts` depends on who expands the pattern: cmd.exe does not,
+ * sh without globstar collapses it to a single level, and node only resolves
+ * globs from 21 onwards. With `engines: node >=20` that means the same command
+ * passes on one machine and fails on another -- exactly what cannot happen in CI.
  *
- * tsx se invoca como `node --import tsx` y no por su binario: en Windows es un
- * `.cmd` y spawn no ejecuta scripts de shell directamente.
+ * tsx is invoked as `node --import tsx` and not through its binary: on Windows
+ * it is a `.cmd` and spawn does not run shell scripts directly.
  */
 function findTests(dir) {
   const found = []
@@ -26,7 +26,7 @@ function findTests(dir) {
 const tests = findTests('src')
 
 if (tests.length === 0) {
-  console.error('No se encontro ningun archivo *.test.ts en src/')
+  console.error('No *.test.ts file found in src/')
   process.exit(1)
 }
 

@@ -12,11 +12,11 @@ const promptSchema = z.object({
   additions: z.array(z.string()).default([]),
 })
 
-/** Un proyecto puede sobrescribir cualquier parte del prompt global. */
+/** A project can override any part of the global prompt. */
 const projectSchema = z.object({
   repo: z.string().min(1),
   baseBranch: z.string().min(1),
-  /** Desactivado se conserva en el archivo pero queda fuera de la consulta. */
+  /** Disabled is kept in the file but left out of the query. */
   enabled: z.boolean().default(true),
   prompt: promptSchema.partial().optional(),
 })
@@ -26,16 +26,16 @@ const configSchema = z.object({
   jira: z.object({
     site: z.string().url().or(z.literal('')),
     statuses: z.array(z.string().min(1)),
-    /** Se concatena a la JQL generada. Util para acotar a un sprint o a un epic. */
+    /** Appended to the generated JQL. Useful to narrow to a sprint or an epic. */
     extraJql: z.string().default(''),
   }),
   worktrees: z.object({
     dir: z.string().min(1),
     /**
-     * Claude Code deduce la rama principal de un repo con
-     * `git symbolic-ref refs/remotes/origin/HEAD`, no de la rama base que use
-     * este panel. Si el remoto declara `main` pero aqui se trabaja sobre otra,
-     * la sesion mostrara la equivocada. Es un cambio local, nunca se sube.
+     * Claude Code works out a repo's main branch with
+     * `git symbolic-ref refs/remotes/origin/HEAD`, not from the base branch this
+     * panel uses. If the remote declares `main` but the work here happens on
+     * another one, the session shows the wrong branch. Local change, never pushed.
      */
     alignOriginHead: z.boolean().default(false),
   }),
@@ -47,13 +47,13 @@ const configSchema = z.object({
     .object({
       mode: z.enum(['open', 'clipboard']),
       /**
-       * El deep link solo transporta el prompt y la carpeta: no hay forma de
-       * pedirle un modo de permisos. Se escribe en el
-       * `.claude/settings.local.json` del worktree, que es tier `local`.
+       * The deep link only carries the prompt and the folder: there is no way to
+       * ask it for a permission mode. It is written into the worktree's
+       * `.claude/settings.local.json`, which is the `local` tier.
        *
-       * Tiene que ser el tier local y no el `settings.json` versionado del repo:
-       * los modos elevados que vienen del tier `project` la app los descarta en
-       * silencio, para que un repositorio no pueda auto-concederse permisos.
+       * It has to be the local tier and not the repo's versioned `settings.json`:
+       * elevated modes coming from the `project` tier are silently discarded by
+       * the app, so that a repository cannot grant itself permissions.
        */
       permissionMode: z
         .enum(['inherit', 'default', 'plan', 'acceptEdits', 'auto', 'bypassPermissions'])
@@ -64,7 +64,7 @@ const configSchema = z.object({
     .object({
       label: z.string().min(1),
       command: z.string().min(1),
-      /** `{{path}}` se sustituye por la ruta del worktree. */
+      /** `{{path}}` is replaced by the worktree path. */
       args: z.array(z.string()),
     })
     .default({ label: 'VS Code', command: 'code', args: ['-n', '{{path}}'] }),
@@ -77,17 +77,17 @@ export type ProjectConfig = z.infer<typeof projectSchema>
 export type PromptConfig = z.infer<typeof promptSchema>
 
 export interface AppConfig extends FileConfig {
-  /** Puerto efectivo: PORT del entorno gana sobre config.json. */
+  /** Effective port: PORT from the environment wins over config.json. */
   port: number
   jiraEmail: string | null
   jiraToken: string | null
-  /** Hay sitio de Jira y al menos un proyecto: la app puede trabajar. */
+  /** There is a Jira site and at least one project: the app can work. */
   configured: boolean
 }
 
 export class ConfigError extends Error {}
 
-/** Punto de partida de una instalacion nueva, antes del asistente. */
+/** Starting point for a fresh install, before the wizard. */
 export const DEFAULT_CONFIG: FileConfig = {
   server: { port: 8787 },
   jira: { site: '', statuses: ['To Do', 'In Progress'], extraJql: '' },
@@ -131,17 +131,17 @@ function toAppConfig(file: FileConfig): AppConfig {
 }
 
 /**
- * Traslada una configuracion que viviera junto al codigo, de cuando esto se
- * clonaba en vez de ejecutarse con `npx`. Se hace una sola vez y sin borrar el
- * original, para no dejar a nadie sin su configuracion tras actualizar.
+ * Moves over a configuration that used to live next to the code, from when this
+ * was cloned instead of run with `npx`. Done once and without deleting the
+ * original, so that nobody is left without their configuration after updating.
  */
 function migrateLegacy(rootDir: string): void {
   const target = configPath()
   if (existsSync(target)) return
 
-  // Dos origenes posibles: junto al codigo, de cuando esto se clonaba en vez de
-  // ejecutarse con `npx`, y la carpeta del nombre anterior del paquete. Se copia
-  // sin borrar el original, para no dejar a nadie sin su configuracion.
+  // Two possible sources: next to the code, from when this was cloned instead of
+  // run with `npx`, and the folder of the package's previous name. It is copied
+  // without deleting the original, so that nobody is left without their config.
   const candidates = [
     resolve(rootDir, 'config.json'),
     resolve(dirname(configDir()), 'jira-ticket-workflow', 'config.json'),
@@ -162,9 +162,9 @@ function migrateLegacy(rootDir: string): void {
 }
 
 /**
- * Nunca falla por ausencia de configuracion: una instalacion nueva arranca con
- * los valores por defecto y el asistente se encarga del resto. Solo se queja si
- * el archivo existe y esta roto, que si es un problema que hay que ver.
+ * Never fails for a missing configuration: a fresh install starts with the
+ * defaults and the wizard takes care of the rest. It only complains if the file
+ * exists and is broken, which is a problem that does need to be seen.
  */
 export function loadConfig(rootDir: string): AppConfig {
   migrateLegacy(rootDir)
@@ -183,9 +183,10 @@ export function loadConfig(rootDir: string): AppConfig {
 }
 
 /**
- * Fusiona el prompt global con el override del proyecto.
- * Un proyecto que define `additions` reemplaza la lista completa, no la extiende:
- * mezclarlas haria imposible quitar una adicion global desde un proyecto.
+ * Merges the global prompt with the project override.
+ * A project that defines `additions` replaces the whole list, it does not extend
+ * it: merging them would make it impossible to remove a global addition from a
+ * project.
  */
 export function resolvePrompt(config: AppConfig, projectKey: string): PromptConfig {
   const override = config.projects[projectKey]?.prompt
@@ -195,7 +196,7 @@ export function resolvePrompt(config: AppConfig, projectKey: string): PromptConf
   }
 }
 
-/** Claves de los proyectos activos, que son los que entran en la consulta a Jira. */
+/** Keys of the enabled projects, which are the ones that go into the Jira query. */
 export function enabledProjectKeys(config: AppConfig): string[] {
   return Object.entries(config.projects)
     .filter(([, p]) => p.enabled)
@@ -203,11 +204,11 @@ export function enabledProjectKeys(config: AppConfig): string[] {
 }
 
 /**
- * Guarda la configuracion y notifica a quien dependa de ella.
+ * Saves the configuration and notifies whoever depends on it.
  *
- * config.json dejo de ser un archivo que solo se lee al arrancar: la pantalla de
- * opciones lo escribe. Por eso la escritura es atomica (temporal + rename) — una
- * escritura interrumpida dejaria la herramienta sin poder arrancar.
+ * config.json stopped being a file that is only read at startup: the options
+ * screen writes to it. That is why the write is atomic (temp file + rename) — an
+ * interrupted write would leave the tool unable to start.
  */
 export class ConfigStore {
   private listeners = new Set<() => void>()
@@ -226,7 +227,7 @@ export class ConfigStore {
     this.listeners.add(listener)
   }
 
-  /** Relee credenciales sin tocar el archivo de configuracion. */
+  /** Re-reads credentials without touching the configuration file. */
   reloadCredentials(): AppConfig {
     const { port: _p, jiraEmail: _e, jiraToken: _t, configured: _c, ...file } = this.current
     this.current = toAppConfig(file)

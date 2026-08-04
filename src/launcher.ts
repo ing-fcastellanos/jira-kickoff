@@ -2,47 +2,47 @@ import { spawn } from 'node:child_process'
 import { PROMPT_MAX_LENGTH } from './prompt'
 
 /**
- * Deep link de la app de escritorio. Contrato leido del router de `app.asar`:
+ * Desktop app deep link. Contract read from the `app.asar` router:
  *
  *   case Code:
  *     if (pathname !== "/new") -> "unrecognized code path"
  *     const u = searchParams.get("q") ?? searchParams.get("prompt")
  *     const f = searchParams.getAll("folder")
  *
- * Es interfaz interna, no publica: puede romperse en cualquier actualizacion.
- * Por eso `initialize` deja el worktree creado antes de intentar abrirla.
+ * This is an internal interface, not a public one: it can break in any update.
+ * That is why `initialize` leaves the worktree created before trying to open it.
  */
 export function buildDeepLink(prompt: string, folder: string): string {
   return `claude://code/new?q=${encode(prompt.slice(0, PROMPT_MAX_LENGTH))}&folder=${encode(folder)}`
 }
 
 /**
- * `encodeURIComponent` deja pasar la comilla simple, y en Windows la URL viaja
- * dentro de una cadena entrecomillada de PowerShell. Codificarla aqui evita
- * tener que confiar en el escapado mas abajo; la app la decodifica igual.
+ * `encodeURIComponent` lets the single quote through, and on Windows the URL
+ * travels inside a quoted PowerShell string. Encoding it here avoids having to
+ * trust the escaping further down; the app decodes it all the same.
  */
 function encode(value: string): string {
   return encodeURIComponent(value).replaceAll("'", '%27')
 }
 
 /**
- * Entrega la URL al manejador de protocolos del sistema.
+ * Hands the URL to the system's protocol handler.
  *
- * En Windows se usa `Start-Process` de PowerShell, que es ShellExecute. Se
- * probaron dos alternativas mas baratas y ninguna sirve:
- *   · `rundll32 url.dll,FileProtocolHandler` — la app recibe la invocacion pero
- *     pierde los parametros: el folder nunca llega.
- *   · `explorer.exe <url>` — no activa el protocolo, no pasa nada en absoluto.
+ * On Windows it uses PowerShell's `Start-Process`, which is ShellExecute. Two
+ * cheaper alternatives were tried and neither works:
+ *   · `rundll32 url.dll,FileProtocolHandler` — the app receives the invocation
+ *     but loses the parameters: the folder never arrives.
+ *   · `explorer.exe <url>` — does not trigger the protocol, nothing happens.
  *
- * Que esto resuelva no significa que la sesion se haya abierto: solo que el
- * handler acepto la invocacion. La UI lo enuncia asi, sin prometer de mas.
+ * This resolving does not mean the session opened: only that the handler
+ * accepted the invocation. The UI words it that way, without promising more.
  */
 export function openUrl(url: string): Promise<void> {
   const [command, args] = launchCommand(url)
   return new Promise((resolve, reject) => {
-    // Sin `detached`: el lanzador se espera a que termine. Al soltarlo y salir,
-    // el hijo moria antes de invocar el protocolo y la app no recibia nada.
-    // Ademas, esperar convierte el resultado en una senal real de exito.
+    // No `detached`: the launcher is waited on. Releasing it and exiting made the
+    // child die before invoking the protocol and the app received nothing.
+    // Waiting also turns the result into a real signal of success.
     const child = spawn(command, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true })
 
     let stderr = ''

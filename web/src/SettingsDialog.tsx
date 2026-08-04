@@ -51,7 +51,7 @@ function Tokens({ items }: { items: Placeholder[] }) {
   )
 }
 
-/** Lista de cadenas editable: statuses de Jira, lineas del prompt, argumentos. */
+/** Editable list of strings: Jira statuses, prompt lines, arguments. */
 function StringList({
   values,
   onChange,
@@ -126,8 +126,8 @@ export default function SettingsDialog({
     }
   }, [])
 
-  // Vista previa del nombre de rama: la calcula el servidor, que es donde vive
-  // la normalizacion del slug. Con espera, para no llamar en cada tecla.
+  // Branch name preview: computed by the server, which is where the slug
+  // normalization lives. Debounced, so it does not call on every keystroke.
   useEffect(() => {
     if (!draft) return
     let cancelled = false

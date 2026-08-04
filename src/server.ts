@@ -21,9 +21,9 @@ import { HistoryStore } from './history'
 const rootDir = packageRoot()
 
 /*
- * `--version` se atiende antes que nada: sin cargar config.json, sin abrir
- * puerto y sin tocar el navegador. Es lo que se pide en cada reporte de bug, y
- * en una linea van las cuatro cosas que hacen falta para reproducirlo.
+ * `--version` is answered before anything else: without loading config.json,
+ * without opening a port and without touching the browser. It is what every bug
+ * report asks for, and one line carries the four things needed to reproduce it.
  */
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
   console.log(
@@ -32,7 +32,7 @@ if (process.argv.includes('--version') || process.argv.includes('-v')) {
   process.exit(0)
 }
 
-/** Puertos a probar si el preferido esta ocupado, antes de rendirse. */
+/** Ports to try if the preferred one is busy, before giving up. */
 const PORT_ATTEMPTS = 20
 
 async function listen(app: FastifyInstance, preferred: number): Promise<number> {
@@ -42,7 +42,7 @@ async function listen(app: FastifyInstance, preferred: number): Promise<number> 
       await app.listen({ port, host })
       return port
     } catch (err) {
-      // Otra copia del panel, o cualquier otro proceso: se prueba el siguiente.
+      // Another copy of the panel, or any other process: the next one is tried.
       if ((err as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw err
     }
   }
@@ -53,8 +53,8 @@ async function listen(app: FastifyInstance, preferred: number): Promise<number> 
 }
 
 async function main(): Promise<void> {
-  // La pantalla de opciones escribe config.json, asi que la configuracion vive
-  // en un store recargable y no en un objeto leido una sola vez al arrancar.
+  // The options screen writes config.json, so the configuration lives in a
+  // reloadable store and not in an object read once at startup.
   const store = ConfigStore.load(rootDir)
   const app = Fastify({ logger: false })
 
@@ -70,7 +70,7 @@ async function main(): Promise<void> {
     reply.status(err.statusCode ?? 500).send({ error: err.message })
   })
 
-  // Una sola instancia: la cache de tickets se comparte entre rutas.
+  // A single instance: the ticket cache is shared between routes.
   const tickets = new TicketService(store)
   const history = HistoryStore.load()
 
@@ -98,8 +98,8 @@ async function main(): Promise<void> {
     })
   }
 
-  // Solo loopback: este servicio ejecuta git y abre sesiones en tu maquina,
-  // no tiene por que ser alcanzable desde la red.
+  // Loopback only: this service runs git and opens sessions on your machine,
+  // there is no reason for it to be reachable from the network.
   const port = await listen(app, store.get().port)
   const url = `http://127.0.0.1:${port}`
   const config = store.get()
@@ -112,8 +112,8 @@ async function main(): Promise<void> {
   }
   console.log()
 
-  // Abrir el navegador es el punto del `npx`: que el primer arranque no exija
-  // leer la salida de la terminal para saber a donde ir.
+  // Opening the browser is the point of the `npx`: the first start should not
+  // require reading terminal output to know where to go.
   if (webBuilt && process.env.JTW_NO_OPEN !== '1' && !process.argv.includes('--no-open')) {
     openUrl(url).catch(() => {
       console.log(`  Abre ${url} en tu navegador.`)

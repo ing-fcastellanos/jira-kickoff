@@ -1,14 +1,14 @@
 import { build } from 'esbuild'
 
 /*
- * El servidor se empaqueta en un solo archivo con shebang.
+ * The server is bundled into a single file with a shebang.
  *
- * La alternativa era publicar el TypeScript y resolverlo con tsx en cada
- * arranque, pero eso suma un transpilado a cada `npx` y arrastra tsx como
- * dependencia de ejecucion. Empaquetar deja el arranque en un `node` limpio.
+ * The alternative was to publish the TypeScript and resolve it with tsx on every
+ * start, but that adds a transpile to every `npx` and drags tsx in as a runtime
+ * dependency. Bundling leaves the start as a clean `node`.
  *
- * Las dependencias quedan externas: npm ya las instala y meterlas en el bundle
- * solo duplicaria peso.
+ * Dependencies stay external: npm already installs them and putting them in the
+ * bundle would only duplicate weight.
  */
 await build({
   entryPoints: ['src/server.ts'],

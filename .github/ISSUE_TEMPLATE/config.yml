@@ -1,5 +1,5 @@
-# Sin issue en blanco: las dos plantillas cubren lo accionable y el resto va a
-# los enlaces de abajo.
+# No blank issues: the two templates cover what is actionable and everything else
+# goes to the links below.
 blank_issues_enabled: false
 
 contact_links:

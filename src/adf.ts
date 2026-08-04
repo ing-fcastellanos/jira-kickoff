@@ -1,14 +1,14 @@
 /**
- * Convierte Atlassian Document Format a Markdown.
+ * Converts Atlassian Document Format to Markdown.
  *
- * La API v3 de Jira devuelve las descripciones y los comentarios como ADF: un
- * arbol JSON, ni texto ni HTML. La alternativa era pedir `renderedFields`, que
- * da HTML de Jira, pero pintarlo obligaria a inyectar HTML ajeno en la pagina.
- * Convertir aqui deja el control del resultado y evita ese riesgo.
+ * Jira's v3 API returns descriptions and comments as ADF: a JSON tree, neither
+ * text nor HTML. The alternative was to ask for `renderedFields`, which gives
+ * Jira's HTML, but painting it would mean injecting foreign HTML into the page.
+ * Converting here keeps control of the result and avoids that risk.
  *
- * Cubre lo que estos tickets usan de verdad —parrafos, encabezados, listas,
- * tablas, bloques de codigo, citas, reglas y las marcas code/strong/em/link— y
- * degrada con elegancia cualquier nodo que no conozca en vez de perderlo.
+ * It covers what these tickets actually use —paragraphs, headings, lists,
+ * tables, code blocks, quotes, rules and the code/strong/em/link marks— and
+ * degrades gracefully for any node it does not know instead of losing it.
  */
 
 interface AdfNode {
@@ -20,9 +20,9 @@ interface AdfNode {
 }
 
 /**
- * Escapa lo que Markdown interpretaria. Se limita a lo que rompe de verdad:
- * `_` intrapalabra no genera enfasis en CommonMark, asi que `snake_case`
- * sobrevive sin ensuciar el texto con barras invertidas.
+ * Escapes what Markdown would interpret. Limited to what actually breaks:
+ * an intra-word `_` does not produce emphasis in CommonMark, so `snake_case`
+ * survives without littering the text with backslashes.
  */
 function escapeText(text: string): string {
   return text.replace(/([\\*[\]<>])/g, '\\$1')
@@ -31,8 +31,8 @@ function escapeText(text: string): string {
 function applyMarks(text: string, marks: AdfNode['marks']): string {
   if (!marks?.length) return escapeText(text)
 
-  // El codigo va primero y sin escapar: dentro de comillas simples Markdown no
-  // interpreta nada, y escapar ahi mostraria las barras invertidas.
+  // Code goes first and unescaped: inside backticks Markdown interprets
+  // nothing, and escaping there would show the backslashes.
   const isCode = marks.some((m) => m.type === 'code')
   let out = isCode ? `\`${text.replace(/`/g, '')}\`` : escapeText(text)
 
@@ -83,14 +83,14 @@ function inline(nodes: AdfNode[] | undefined): string {
           return url ? `<${url}>` : ''
         }
         default:
-          // Un nodo desconocido con hijos todavia puede aportar su texto.
+          // An unknown node with children can still contribute its text.
           return inline(n.content)
       }
     })
     .join('')
 }
 
-/** Las celdas de una tabla GFM tienen que caber en una linea. */
+/** The cells of a GFM table have to fit on one line. */
 function cellText(node: AdfNode): string {
   return blocks(node.content).replace(/\n+/g, ' ').replace(/\|/g, '\\|').trim()
 }
@@ -104,8 +104,8 @@ function table(node: AdfNode): string {
   const pad = (row: string[]): string[] => [...row, ...Array(width - row.length).fill('')]
 
   const firstIsHeader = (rows[0]?.content ?? []).some((c) => c.type === 'tableHeader')
-  // GFM exige fila de encabezado. Si la tabla no la trae, se sintetiza vacia
-  // para no perder la primera fila de datos.
+  // GFM requires a header row. If the table does not bring one, an empty one is
+  // synthesized so that the first row of data is not lost.
   const header = firstIsHeader ? pad(cells[0] ?? []) : Array(width).fill('')
   const body = firstIsHeader ? cells.slice(1) : cells
 
@@ -118,9 +118,9 @@ function table(node: AdfNode): string {
 }
 
 /**
- * El contenido del item se genera sin sangria y son sus lineas de continuacion
- * las que la reciben. Asi una lista anidada se indenta una sola vez, en el nivel
- * que la contiene, y el resultado sigue siendo correcto a cualquier profundidad.
+ * The item's content is generated without indentation and it is its continuation
+ * lines that receive it. That way a nested list is indented only once, at the
+ * level containing it, and the result stays correct at any depth.
  */
 function listBlock(node: AdfNode, ordered: boolean): string {
   const items = (node.content ?? []).filter((i) => i.type === 'listItem')
@@ -152,7 +152,7 @@ function block(node: AdfNode): string {
       const code = (node.content ?? []).map((c) => c.text ?? '').join('')
       return `\`\`\`${lang}\n${code}\n\`\`\``
     }
-    // Un panel es una nota destacada; la cita es lo mas parecido en Markdown.
+    // A panel is a highlighted note; the quote is the closest thing in Markdown.
     case 'panel':
     case 'blockquote':
       return blocks(node.content)

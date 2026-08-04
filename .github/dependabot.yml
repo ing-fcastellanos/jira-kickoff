@@ -1,9 +1,10 @@
 version: 2
 
 updates:
-  # Las actions se pinean por tag mayor (`@v4`) y ese tag no se mueve solo: sin
-  # esto, checkout y setup-node se quedan en la version del dia que se escribio
-  # el workflow. Es el ecosistema que mas se olvida y el mas barato de revisar.
+  # Actions are pinned by major tag (`@v4`) and that tag does not move on its
+  # own: without this, checkout and setup-node stay on the version of the day the
+  # workflow was written. It is the most forgotten ecosystem and the cheapest to
+  # review.
   - package-ecosystem: github-actions
     directory: '/'
     schedule:
@@ -13,14 +14,14 @@ updates:
     directory: '/'
     schedule:
       interval: monthly
-    # Sin agrupar, un lunes cualquiera son diez PR que nadie revisa. Menor y
-    # parche van juntos por tipo de dependencia; las mayores siguen llegando
-    # sueltas, que es cuando de verdad hay que leer el changelog.
+    # Ungrouped, any given Monday is ten PRs nobody reviews. Minor and patch go
+    # together by dependency type; majors still arrive on their own, which is
+    # when the changelog really has to be read.
     groups:
-      produccion:
+      production:
         dependency-type: production
         update-types: [minor, patch]
-      desarrollo:
+      development:
         dependency-type: development
         update-types: [minor, patch]
     open-pull-requests-limit: 5

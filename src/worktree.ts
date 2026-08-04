@@ -10,7 +10,7 @@ import type { BranchAction } from './types'
 const run = promisify(execFile)
 
 const QUICK_MS = 10_000
-/** `fetch` sale a la red y un repo con anos de historia tarda mas de lo que parece. */
+/** `fetch` goes to the network and a repo with years of history takes longer than it looks. */
 const FETCH_MS = 90_000
 const ADD_MS = 120_000
 
@@ -39,7 +39,7 @@ export interface WorktreeEntry {
   branch: string | null
 }
 
-/** Normaliza separadores: git responde con `/` incluso en Windows. */
+/** Normalizes separators: git answers with `/` even on Windows. */
 function samePath(a: string, b: string): boolean {
   const norm = (p: string) => resolve(p).replace(/\\/g, '/').toLowerCase()
   return norm(a) === norm(b)
@@ -91,8 +91,9 @@ export async function remoteBranchExists(repo: string, branch: string): Promise<
 }
 
 /**
- * `ls-remote` consulta el remoto pero no actualiza las refs locales, y el worktree
- * se crea desde `origin/<base>`. Sin este fetch se partiria de una base vieja.
+ * `ls-remote` queries the remote but does not update local refs, and the worktree
+ * is created from `origin/<base>`. Without this fetch it would start from a stale
+ * base.
  */
 export async function fetchOrigin(repo: string): Promise<void> {
   await git(repo, ['fetch', 'origin'], FETCH_MS)
@@ -102,15 +103,15 @@ export function worktreePathFor(repo: string, dir: string, ticketKey: string): s
   return resolve(join(repo, dir, ticketKey.toLowerCase()))
 }
 
-/** Hay cambios sin commitear en el arbol de trabajo. */
+/** There are uncommitted changes in the working tree. */
 export async function isDirty(worktreePath: string): Promise<boolean> {
   const stdout = await git(worktreePath, ['status', '--porcelain'], QUICK_MS)
   return stdout.trim().length > 0
 }
 
 /**
- * Commits que solo existen aqui. Se compara contra el remoto de la propia rama
- * cuando existe; si la rama nunca se subio, contra la base.
+ * Commits that only exist here. Compared against the branch's own remote when it
+ * exists; if the branch was never pushed, against the base.
  */
 export async function unpushedCount(
   worktreePath: string,
@@ -123,7 +124,7 @@ export async function unpushedCount(
     const stdout = await git(worktreePath, ['rev-list', '--count', `${upstream}..HEAD`], QUICK_MS)
     return Number.parseInt(stdout.trim(), 10) || 0
   } catch {
-    // Base desconocida (remoto renombrado, rama huerfana): no se puede afirmar 0.
+    // Unknown base (renamed remote, orphan branch): 0 cannot be asserted.
     return 0
   }
 }
@@ -163,24 +164,25 @@ export async function pruneWorktrees(repo: string): Promise<void> {
 }
 
 /**
- * Apunta `origin/HEAD` a `branch`.
+ * Points `origin/HEAD` at `branch`.
  *
- * Claude Code deduce la rama principal de un repo leyendo esa referencia, no la
- * rama base configurada aqui. Si no coinciden, la sesion muestra la equivocada.
- * Es configuracion local del clon: no toca el remoto ni se sube.
+ * Claude Code works out a repo's main branch by reading that reference, not the
+ * base branch configured here. If they disagree, the session shows the wrong one.
+ * This is local configuration of the clone: it does not touch the remote and is
+ * never pushed.
  */
 export async function setOriginHead(repo: string, branch: string): Promise<void> {
   await git(repo, ['remote', 'set-head', 'origin', branch], QUICK_MS)
 }
 
 /**
- * Fija el modo de permisos por defecto del worktree.
+ * Sets the worktree's default permission mode.
  *
- * Va en `.claude/settings.local.json` (tier `local`) y no en el `settings.json`
- * versionado: los modos elevados que llegan desde el tier `project` la app los
- * ignora, para que un repositorio no pueda auto-concederse permisos.
+ * It goes in `.claude/settings.local.json` (`local` tier) and not in the
+ * versioned `settings.json`: elevated modes arriving from the `project` tier are
+ * ignored by the app, so that a repository cannot grant itself permissions.
  *
- * Se fusiona con lo que ya hubiera en el archivo en vez de reemplazarlo.
+ * It is merged with whatever was already in the file instead of replacing it.
  */
 export async function setWorktreePermissionMode(
   worktreePath: string,
@@ -194,7 +196,7 @@ export async function setWorktreePermissionMode(
     try {
       current = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>
     } catch {
-      // Un archivo corrupto no debe tumbar la inicializacion; se reescribe.
+      // A corrupt file must not bring down the initialization; it gets rewritten.
       current = {}
     }
   }
@@ -221,8 +223,8 @@ export interface CreateWorktreeResult {
 export class WorktreeConflictError extends LocalizedError {}
 
 /**
- * Deja listo un worktree en `worktreePath` apuntando a `branch`.
- * Idempotente: si ya existe con esa misma rama, lo reutiliza sin tocar nada.
+ * Leaves a worktree ready at `worktreePath` pointing at `branch`.
+ * Idempotent: if it already exists with that same branch, it is reused untouched.
  */
 export async function createWorktree({
   repo,
@@ -241,8 +243,8 @@ export async function createWorktree({
     )
   }
 
-  // Carpeta sin registrar en git: restos de un borrado a mano. `worktree add`
-  // fallaria con un mensaje opaco, asi que se explica antes.
+  // Folder not registered in git: leftovers from a manual delete. `worktree add`
+  // would fail with an opaque message, so it is explained beforehand.
   if (existsSync(worktreePath)) {
     throw new WorktreeConflictError('err.worktreeOrphanFolder', { path: worktreePath, repo }, 409)
   }

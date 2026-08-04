@@ -1,22 +1,22 @@
 import type { FastifyReply } from 'fastify'
 import { LocalizedError, langFrom, message, type MessageKey, type Vars } from '../messages'
 
-/** Idioma pedido por el navegador en esta peticion. */
+/** Language requested by the browser on this request. */
 export function langOf(reply: FastifyReply) {
   return langFrom(reply.request.headers['accept-language'])
 }
 
-/** Mensaje suelto ya traducido, para los fallos que no viajan como excepcion. */
+/** A one-off translated message, for failures that do not travel as an exception. */
 export function say(reply: FastifyReply, key: MessageKey, vars?: Vars): string {
   return message(langOf(reply), key, vars)
 }
 
 /**
- * Traduce los fallos conocidos y responde con el texto ya legible.
+ * Translates known failures and answers with the readable text.
  *
- * La traduccion ocurre aqui y no donde se lanza el error: git, Jira y la
- * validacion no saben nada de la peticion, y el idioma solo se conoce en el
- * borde HTTP. Lo que no reconoce se relanza para el handler global.
+ * The translation happens here and not where the error is thrown: git, Jira and
+ * validation know nothing about the request, and the language is only known at
+ * the HTTP edge. What it does not recognize is rethrown for the global handler.
  */
 export function replyWithError(reply: FastifyReply, err: unknown, extra?: Record<string, unknown>) {
   if (err instanceof LocalizedError) {

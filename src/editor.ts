@@ -4,24 +4,24 @@ import { LocalizedError, RawError } from './messages'
 
 export class EditorError extends LocalizedError {}
 
-/** Los lanzadores de editores en Windows son scripts (`code.cmd`), no ejecutables. */
+/** Editor launchers on Windows are scripts (`code.cmd`), not executables. */
 const WINDOWS_SCRIPTS = new Set(['.cmd', '.bat'])
 
 function isWindowsScript(command: string): boolean {
   const ext = extname(command).toLowerCase()
-  // Sin extension tambien: `code` resuelve a `code.cmd` a traves del PATHEXT.
+  // Extensionless too: `code` resolves to `code.cmd` through PATHEXT.
   return process.platform === 'win32' && (ext === '' || WINDOWS_SCRIPTS.has(ext))
 }
 
 /**
- * Abre una ruta en el editor configurado.
+ * Opens a path in the configured editor.
  *
- * `{{path}}` se sustituye en los argumentos, para que cualquier editor encaje
- * sin tocar codigo: `code -n {{path}}`, `cursor {{path}}`, `idea {{path}}`…
+ * `{{path}}` is substituted in the arguments, so that any editor fits without
+ * touching code: `code -n {{path}}`, `cursor {{path}}`, `idea {{path}}`…
  *
- * En Windows se pasa por `cmd.exe /c` porque `spawn` no ejecuta un `.cmd`
- * directamente. Los argumentos van en un array, nunca concatenados en una
- * cadena: una ruta con espacios o con `&` romperia el comando.
+ * On Windows it goes through `cmd.exe /c` because `spawn` does not run a `.cmd`
+ * directly. The arguments go in an array, never concatenated into a string: a
+ * path with spaces or with `&` would break the command.
  */
 export function openInEditor(command: string, args: string[], path: string): Promise<void> {
   const rendered = args.map((a) => a.replaceAll('{{path}}', path))
@@ -44,7 +44,7 @@ export function openInEditor(command: string, args: string[], path: string): Pro
 
     child.once('close', (code) => {
       if (code === 0) resolve()
-      // El stderr del editor, si lo hay, dice mas que cualquier texto nuestro.
+      // The editor's stderr, if any, says more than any text of ours.
       else if (stderr.trim()) reject(new RawError(stderr.trim()))
       else reject(new EditorError('err.editorExit', { command, code: code ?? 'null' }, 502))
     })
