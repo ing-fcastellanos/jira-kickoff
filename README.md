@@ -1,5 +1,10 @@
 # Tickets → Claude Code
 
+[![CI](https://github.com/ing-fcastellanos/jira-kickoff/actions/workflows/ci.yml/badge.svg)](https://github.com/ing-fcastellanos/jira-kickoff/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/jira-kickoff?logo=npm&color=cb3837)](https://www.npmjs.com/package/jira-kickoff)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-5fa04e?logo=nodedotjs&logoColor=white)](package.json)
+[![Licencia MIT](https://img.shields.io/badge/licencia-MIT-blue)](LICENSE)
+
 Panel local que lista tus tickets de Jira abiertos y, desde ahí, deja lista una sesión
 de Claude Code para trabajarlos: crea la rama, crea el worktree y abre la sesión con el
 prompt inicial escrito.
@@ -306,5 +311,27 @@ nombre en la interfaz.
 | `npm run dev` | API con recarga en caliente + Vite, en paralelo |
 | `npm run build` | Compila la UI a `dist/web` y empaqueta el servidor en `dist/server` |
 | `npm start` | Levanta el servidor compilado sirviendo la UI en un solo puerto |
-| `npm test` | Tests de la lógica pura (nombres de rama) |
+| `npm test` | Tests de la lógica pura: nombres de rama y conversión de ADF |
 | `npm run typecheck` | TypeScript sobre servidor y UI |
+
+Los tres últimos son exactamente lo que corre CI, en Node 20, 22 y 24.
+
+## Contribuir
+
+Las incidencias y los PR son bienvenidos. [`CONTRIBUTING.md`](CONTRIBUTING.md)
+explica cómo montar el entorno sin tocar tu configuración real, qué se prueba y
+qué queda fuera del alcance del proyecto; participar implica seguir el
+[código de conducta](CODE_OF_CONDUCT.md).
+
+Lo más útil ahora mismo es confirmar el deep link en macOS y Linux: está
+implementado con `open` y `xdg-open`, pero solo verificado en Windows.
+
+Para abrir una incidencia, `npx jira-kickoff --version` imprime en una sola línea
+la versión, la de node y la plataforma, que es justo lo que pide la plantilla.
+
+Los problemas de seguridad no van a un issue público: [`SECURITY.md`](SECURITY.md)
+explica cómo reportarlos en privado y qué entra dentro del alcance.
+
+## Licencia
+
+[MIT](LICENSE) © Francisco Castellanos

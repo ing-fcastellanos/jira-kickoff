@@ -4,7 +4,7 @@ import Fastify from 'fastify'
 import type { FastifyError, FastifyInstance } from 'fastify'
 import fastifyStatic from '@fastify/static'
 import { ConfigError, ConfigStore } from './config'
-import { configPath, packageRoot } from './paths'
+import { configPath, packageRoot, packageVersion } from './paths'
 import { openUrl } from './launcher'
 import { healthRoutes } from './routes/health'
 import { ticketRoutes } from './routes/tickets'
@@ -19,6 +19,18 @@ import { TicketService } from './ticket-service'
 import { HistoryStore } from './history'
 
 const rootDir = packageRoot()
+
+/*
+ * `--version` se atiende antes que nada: sin cargar config.json, sin abrir
+ * puerto y sin tocar el navegador. Es lo que se pide en cada reporte de bug, y
+ * en una linea van las cuatro cosas que hacen falta para reproducirlo.
+ */
+if (process.argv.includes('--version') || process.argv.includes('-v')) {
+  console.log(
+    `jira-kickoff ${packageVersion()} · node ${process.version} · ${process.platform} ${process.arch}`,
+  )
+  process.exit(0)
+}
 
 /** Puertos a probar si el preferido esta ocupado, antes de rendirse. */
 const PORT_ATTEMPTS = 20
@@ -92,7 +104,7 @@ async function main(): Promise<void> {
   const url = `http://127.0.0.1:${port}`
   const config = store.get()
 
-  console.log(`\n  jira-kickoff`)
+  console.log(`\n  jira-kickoff ${packageVersion()}`)
   console.log(`  ${webBuilt ? url : `${url} (API) · http://127.0.0.1:5100 (vite dev)`}`)
   console.log(`  Configuración: ${configPath()}`)
   if (!config.configured) {

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,6 +21,23 @@ export function packageRoot(from = dirname(fileURLToPath(import.meta.url))): str
     dir = parent
   }
   return from
+}
+
+/**
+ * Version publicada, leida del package.json en cada arranque.
+ *
+ * No se importa el JSON: eso obliga a `with { type: 'json' }` y esbuild acabaria
+ * horneando el numero en el bundle, que es justo lo que no queremos si alguien
+ * repara el paquete a mano. El package.json siempre viaja en el tarball de npm,
+ * asi que el archivo esta donde `packageRoot` lo busca.
+ */
+export function packageVersion(): string {
+  try {
+    const raw = readFileSync(join(packageRoot(), 'package.json'), 'utf8')
+    return (JSON.parse(raw) as { version?: string }).version ?? 'desconocida'
+  } catch {
+    return 'desconocida'
+  }
 }
 
 /**

@@ -1,0 +1,49 @@
+name: Feature request
+description: Propose a change to what the tool does.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This tool covers one hop: from *seeing a Jira ticket* to *having a
+        Claude Code session ready*. Anything that turns it into a Jira client —
+        editing tickets, transitions, comments, boards — is likely out of scope.
+        See [CONTRIBUTING.md](https://github.com/ing-fcastellanos/jira-kickoff/blob/main/CONTRIBUTING.md).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is the problem
+      description: The situation you keep hitting, not the solution yet.
+      placeholder: >-
+        Every time I pick up a ticket I have to … by hand, because the panel
+        only …
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like it to do
+      description: How you picture it working from the panel.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do today instead
+      description: >-
+        A workaround that already works is useful to know — sometimes it is
+        good enough, and sometimes it shows the feature is worth it.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Would you be up for implementing it?
+      description: Not a requirement. It only helps to know before anyone starts.
+      options:
+        - label: I would be willing to open a pull request for this.
+          required: false
