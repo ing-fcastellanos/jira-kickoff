@@ -35,7 +35,7 @@
     "build:web": "vite build",
     "build:server": "node scripts/build-server.mjs",
     "start": "node dist/server/index.js",
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "node scripts/test.mjs",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },

@@ -1,0 +1,63 @@
+name: Release
+
+# Un tag `v*` es lo unico que publica. La version vive en package.json y el tag
+# solo la confirma: si no coinciden, el job para antes de tocar el registro.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # crear la Release
+      id-token: write # provenance de npm
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/jira-kickoff
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      - name: Comprobar que el tag coincide con package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(npm pkg get version | tr -d '"')"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::El tag $GITHUB_REF_NAME no coincide con la version $version de package.json"
+            exit 1
+          fi
+
+      # Un tag con guion (v1.2.0-beta.1) sale como prerelease y bajo el dist-tag
+      # `next`, para que un `npx jira-kickoff` a secas no se lo lleve por delante.
+      - name: Resolver el canal
+        id: channel
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            echo "npm_tag=next" >> "$GITHUB_OUTPUT"
+            echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT"
+          else
+            echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
+            echo "prerelease=" >> "$GITHUB_OUTPUT"
+          fi
+
+      # `prepublishOnly` corre typecheck, tests y build: nada se publica sin pasarlos.
+      - name: Publicar en npm
+        run: npm publish --provenance --access public --tag ${{ steps.channel.outputs.npm_tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Crear la Release de GitHub
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes ${{ steps.channel.outputs.prerelease }}
+        env:
+          GH_TOKEN: ${{ github.token }}
