@@ -50,8 +50,9 @@ export const branchRoutes: FastifyPluginAsync<{
       slugMaxLength: config.branch.slugMaxLength,
     })
 
-    // Si el remoto no responde seguimos con lo local: saber que ya existe una
-    // rama para el ticket vale mas que fallar la pantalla entera.
+    // If the remote does not answer we carry on with the local ones: knowing a
+    // branch for the ticket already exists is worth more than failing the whole
+    // screen.
     let remote: string[] = []
     let remoteError: string | null = null
     try {

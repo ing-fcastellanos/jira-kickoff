@@ -5,10 +5,10 @@ import { Button, Key, Modal, Note, inputClass, monoInputClass } from './ui'
 import { useT } from './LocaleProvider'
 import type { Key as MsgKey } from './i18n'
 
-/** Un repo veterano pasa de 600 ramas: pintarlas todas cuelga la lista y no ayuda. */
+/** A veteran repo goes past 600 branches: painting them all hangs the list and does not help. */
 const MAX_VISIBLE = 30
 
-/** El prompt se recompone al cambiar de rama; sin esperar, se recompone en cada tecla. */
+/** The prompt is recomposed when the branch changes; with no wait, on every keystroke. */
 const REBUILD_DELAY_MS = 300
 
 type Load =
@@ -96,7 +96,7 @@ export default function BranchDialog({
     PromptResponse,
     'maxLength' | 'warnLength'
   > | null>(null)
-  // Una vez que tocas el prompt, cambiar de rama deja de sobrescribirlo.
+  // Once you touch the prompt, changing branch stops overwriting it.
   const promptDirty = useRef(false)
 
   const [submitting, setSubmitting] = useState(false)
@@ -120,8 +120,8 @@ export default function BranchDialog({
     }
   }, [ticket.key])
 
-  // El prompt puede contener {{branch}} y {{worktree}}, asi que se recompone en
-  // el servidor —donde vive la plantilla— cada vez que cambia la rama elegida.
+  // The prompt can contain {{branch}} and {{worktree}}, so it is recomposed on
+  // the server —where the template lives— every time the chosen branch changes.
   useEffect(() => {
     if (!branchName || promptDirty.current) return
     let cancelled = false
@@ -133,7 +133,7 @@ export default function BranchDialog({
           setPromptMeta({ maxLength: data.maxLength, warnLength: data.warnLength })
         })
         .catch(() => {
-          /* el error real ya se vera al inicializar */
+          /* the real error will show up on initialize */
         })
     }, REBUILD_DELAY_MS)
     return () => {

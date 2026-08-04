@@ -8,8 +8,8 @@ on:
 permissions:
   contents: read
 
-# Un push nuevo sobre la misma rama cancela la ejecucion anterior: lo que
-# importa es si el ultimo commit pasa, no los intermedios.
+# A new push on the same branch cancels the previous run: what matters is
+# whether the last commit passes, not the intermediate ones.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 20 es el minimo que declara `engines`; hay que comprobarlo de verdad.
+        # 20 is the minimum `engines` declares; it has to be actually checked.
         node: ['20', '22', '24']
     steps:
       - uses: actions/checkout@v4

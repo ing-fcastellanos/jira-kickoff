@@ -1,18 +1,18 @@
 /**
- * Marcas diacriticas combinantes que NFD separa de su letra base.
- * Se declara con escapes en vez de los caracteres literales: son invisibles en
- * un editor y cualquier reencoding del archivo los corrompe en silencio.
+ * Combining diacritical marks that NFD separates from their base letter.
+ * Declared with escapes instead of the literal characters: they are invisible in
+ * an editor and any re-encoding of the file corrupts them silently.
  */
 const COMBINING_MARKS = new RegExp('[\\u0300-\\u036f]', 'g')
 
 /**
- * Convierte un texto libre en un fragmento usable dentro de un nombre de rama.
+ * Turns free text into a fragment usable inside a branch name.
  *
- * Las marcas se quitan antes de colapsar lo no alfanumerico: si no, "Anadir"
- * con tilde pasaria por NFD a letra + tilde suelta, y esa tilde terminaria
- * convertida en un guion ("an-adir").
+ * The marks are stripped before collapsing non-alphanumerics: otherwise
+ * "Anadir" with a tilde would go through NFD to letter + loose tilde, and that
+ * tilde would end up turned into a dash ("an-adir").
  *
- * Corta en frontera de palabra: `...override-pric` se lee peor que `...override`.
+ * It cuts at a word boundary: `...override-pric` reads worse than `...override`.
  */
 export function slugify(text: string, maxLength: number): string {
   const base = text
@@ -26,7 +26,7 @@ export function slugify(text: string, maxLength: number): string {
 
   const cut = base.slice(0, maxLength)
   const lastDash = cut.lastIndexOf('-')
-  // Si la primera palabra ya excede el limite no hay frontera util donde cortar.
+  // If the first word already exceeds the limit there is no useful boundary.
   return (lastDash > 0 ? cut.slice(0, lastDash) : cut).replace(/-+$/, '')
 }
 
@@ -53,7 +53,7 @@ export function suggestBranchName({
   for (const [token, value] of Object.entries(replacements)) {
     out = out.replaceAll(token, value)
   }
-  // Un summary vacio dejaria un `-` colgando al final del patron.
+  // An empty summary would leave a `-` dangling at the end of the pattern.
   return out.replace(/-+$/, '')
 }
 
@@ -62,8 +62,8 @@ function escapeRegExp(value: string): string {
 }
 
 /**
- * Detecta si una rama corresponde a un ticket.
- * Exige que no siga un digito, para que ABC-123 no reclame `abc-1230`.
+ * Detects whether a branch belongs to a ticket.
+ * Requires that no digit follows, so that ABC-123 does not claim `abc-1230`.
  */
 export function matchesTicket(branchName: string, ticketKey: string): boolean {
   const re = new RegExp(`(^|[^a-z0-9])${escapeRegExp(ticketKey)}([^0-9]|$)`, 'i')

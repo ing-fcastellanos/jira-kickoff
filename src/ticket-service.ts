@@ -4,7 +4,7 @@ import { JiraClient, buildAssignedJql, type JiraIssue } from './jira'
 import type { Ticket, TicketsResponse } from './types'
 import { LocalizedError } from './messages'
 
-/** Jira no cambia entre dos pulsaciones de F5; sin esto cada render golpea la API. */
+/** Jira does not change between two F5s; without this every render hits the API. */
 const CACHE_TTL_MS = 30_000
 
 export class MissingCredentialsError extends LocalizedError {
@@ -36,15 +36,15 @@ function toTicket(issue: JiraIssue, site: string): Ticket {
 }
 
 /**
- * Fuente unica de los tickets. La comparten la ruta de tickets y la de ramas,
- * que necesita el summary para proponer el nombre.
+ * Single source of the tickets. Shared by the tickets route and the branches
+ * one, which needs the summary to suggest the name.
  */
 export class TicketService {
   private cache: { at: number; payload: TicketsResponse } | null = null
 
   constructor(private readonly store: ConfigStore) {
-    // Cambiar de proyectos, de statuses o de filtro invalida lo cacheado:
-    // seguir sirviendolo mostraria el resultado de la configuracion anterior.
+    // Changing projects, statuses or filter invalidates what is cached: serving
+    // it on would show the result of the previous configuration.
     store.subscribe(() => {
       this.cache = null
     })
@@ -87,7 +87,7 @@ export class TicketService {
     return payload
   }
 
-  /** Un ticket ausente de la cache puede haberse asignado hace un segundo: se reintenta fresco. */
+  /** A ticket missing from the cache may have been assigned a second ago: retried fresh. */
   async find(key: string): Promise<Ticket | null> {
     const wanted = key.toUpperCase()
     const fromCache = (await this.list()).tickets.find((t) => t.key.toUpperCase() === wanted)

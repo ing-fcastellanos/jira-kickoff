@@ -2,28 +2,29 @@ import { useEffect } from 'react'
 import { useT } from './LocaleProvider'
 
 /**
- * Primitivas compartidas de la interfaz.
+ * Shared interface primitives.
  *
- * Los cuatro modales repetian overlay, cierre con Escape, cabecera y botones.
- * Tenerlo en un sitio no es solo menos codigo: es lo que garantiza que las
- * cinco superficies sigan hablando el mismo idioma cuando cambie una.
+ * The four modals repeated overlay, close on Escape, header and buttons. Having
+ * it in one place is not just less code: it is what guarantees the five surfaces
+ * keep speaking the same language when one of them changes.
  */
 
 const VARIANTS = {
-  /* Accion principal: lavanda solida, la unica pieza que llena de color. */
+  /* Primary action: solid lavender, the only piece that fills with colour. */
   primary: 'border-accent bg-accent text-accent-ink hover:bg-accent-hover hover:border-accent-hover',
-  /* Accion secundaria de cabecera y formularios. */
+  /* Secondary action for headers and forms. */
   default: 'border-line bg-panel text-ink-3 hover:bg-control-hover hover:border-line-strong',
-  /* Accion dentro de una tarjeta o fila, sobre fondo ya elevado. */
+  /* Action inside a card or row, on an already elevated background. */
   quiet: 'border-line-strong bg-control text-ink-3 hover:bg-control-hover',
-  /* Alternativa a primary cuando la accion no es la esperada. */
+  /* Alternative to primary when the action is not the expected one. */
   outline: 'border-line-strong bg-transparent text-ink hover:bg-control',
   ghost: 'border-transparent bg-transparent text-ink-5 hover:bg-control-hover hover:text-ink',
   danger: 'border-danger bg-danger text-danger-ink hover:opacity-90',
   /*
-   * Estados que en Tailwind no pueden lograrse sobrescribiendo la variante base
-   * por className: al competir dos utilidades del mismo grupo gana la que salga
-   * despues en el CSS generado, no la que se escriba despues en el atributo.
+   * States that in Tailwind cannot be achieved by overriding the base variant
+   * through className: when two utilities of the same group compete, the winner
+   * is the one that comes later in the generated CSS, not the one written later
+   * in the attribute.
    */
   selected: 'border-accent bg-accent-soft font-semibold text-accent',
   warn: 'border-warn-line bg-transparent text-warn hover:bg-warn-bg',
@@ -80,7 +81,7 @@ const NOTE_TITLE = {
   info: 'text-info',
 } as const
 
-/** Aviso con el `>` de cita de Markdown delante del titulo. */
+/** Notice with Markdown's quote `>` in front of the title. */
 export function Note({
   tone,
   title,
@@ -109,7 +110,7 @@ export function Note({
   )
 }
 
-/** Titulo con su marca de encabezado Markdown. Nivel 2 o 3 segun el contexto. */
+/** Title with its Markdown heading mark. Level 2 or 3 depending on the context. */
 export function Heading({
   level = 3,
   children,
@@ -131,7 +132,7 @@ export function Heading({
   )
 }
 
-/** Clave entre acentos graves, como un `code` de Markdown. */
+/** Key between backticks, like a Markdown `code`. */
 export function Key({ children, as = 'span' }: { children: string; as?: 'span' | 'strong' }) {
   const Tag = as
   return (

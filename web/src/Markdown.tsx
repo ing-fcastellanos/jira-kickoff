@@ -2,15 +2,15 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 /**
- * Render del Markdown que sale de las descripciones y comentarios de Jira.
+ * Renders the Markdown that comes out of Jira descriptions and comments.
  *
- * Sin `rehype-raw` a proposito: el HTML crudo que pudiera venir del ticket no se
- * ejecuta, solo se muestra como texto. Es contenido de terceros y no tiene por
- * que poder inyectar nada en la pagina.
+ * No `rehype-raw` on purpose: any raw HTML that might arrive in the ticket is
+ * not executed, only shown as text. It is third-party content and has no reason
+ * to be able to inject anything into the page.
  *
- * Los encabezados conservan su marca (`####`) y las listas su guion, en el mismo
- * lavanda que el resto de la interfaz: el contenido de Jira ya viene en Markdown
- * y la direccion visual consiste justamente en no esconderlo.
+ * Headings keep their mark (`####`) and lists their dash, in the same lavender
+ * as the rest of the interface: Jira's content already arrives as Markdown and
+ * the visual direction consists precisely of not hiding it.
  */
 export default function Markdown({ children }: { children: string }) {
   return (
@@ -48,7 +48,7 @@ export default function Markdown({ children }: { children: string }) {
           ul: (p) => <ul className="flex list-none flex-col gap-1.5 pl-1" {...p} />,
           ol: (p) => <ol className="flex list-decimal flex-col gap-1.5 pl-5 marker:text-ink-6" {...p} />,
           li: ({ children, ...rest }) => {
-            // El guion se dibuja aparte para poder teñirlo sin tocar el texto.
+            // The dash is drawn separately so it can be tinted without touching the text.
             const ordered = 'data-ordered' in rest
             return ordered ? (
               <li {...rest}>{children}</li>
@@ -75,7 +75,7 @@ export default function Markdown({ children }: { children: string }) {
           ),
           hr: () => <hr className="border-line-soft" />,
           code: ({ children, className }) => {
-            // Sin lenguaje es codigo en linea; con el, un bloque dentro de <pre>.
+            // With no language it is inline code; with one, a block inside <pre>.
             const isBlock = Boolean(className)
             return isBlock ? (
               <code className="font-mono text-[11.5px] leading-[1.6] text-ok">{children}</code>
@@ -89,8 +89,8 @@ export default function Markdown({ children }: { children: string }) {
               {...p}
             />
           ),
-          // Las tablas de Jira pueden ser anchas: se desplazan dentro de su caja
-          // en vez de forzar scroll horizontal a todo el modal.
+          // Jira tables can be wide: they scroll inside their own box instead of
+          // forcing horizontal scroll on the whole modal.
           table: (p) => (
             <div className="overflow-x-auto rounded-lg border border-line">
               <table className="w-full border-collapse text-[12px]" {...p} />

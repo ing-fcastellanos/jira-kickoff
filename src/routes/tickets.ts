@@ -9,8 +9,8 @@ export const ticketRoutes: FastifyPluginAsync<{ tickets: TicketService }> = asyn
     try {
       return await tickets.list(req.query.refresh !== undefined)
     } catch (err) {
-      // La JQL sale de config.json, asi que un 400 casi siempre es un status o un
-      // proyecto mal escrito ahi. Devolverla ahorra el diagnostico.
+      // The JQL comes from config.json, so a 400 is almost always a status or a
+      // project misspelled there. Returning it saves the diagnosis.
       return replyWithError(reply, err, { jql: tickets.jql })
     }
   })

@@ -3,11 +3,12 @@ import { Button, Key } from './ui'
 import { useT } from './LocaleProvider'
 
 /**
- * "Rejected" es categoria `indeterminate` en Jira, igual que "In Progress",
- * pero significa lo contrario. Se distingue por nombre antes que por categoria.
+ * "Rejected" is category `indeterminate` in Jira, just like "In Progress", but
+ * it means the opposite. It is told apart by name before by category.
  *
- * El nombre del status no se traduce: viene de Jira y es el que el usuario ve
- * en su tablero. Traducirlo aqui inventaria un vocabulario que no existe alli.
+ * The status name is not translated: it comes from Jira and is the one the user
+ * sees on their board. Translating it here would invent a vocabulary that does
+ * not exist there.
  */
 function statusBadge(ticket: Ticket): string {
   if (ticket.status.toLowerCase() === 'rejected') return 'bg-danger-bg text-danger'
@@ -24,8 +25,8 @@ function statusBadge(ticket: Ticket): string {
 const HIGH_PRIORITIES = new Set(['highest', 'high'])
 
 /**
- * Seguimiento del ticket. El worktree lo dice git; la fecha, el historial.
- * Que exista worktree manda: es lo que puedes retomar ahora mismo.
+ * Ticket tracking. The worktree is told by git; the date, by the history.
+ * An existing worktree wins: it is what you can resume right now.
  */
 function Progress({ activity }: { activity: TicketActivity }) {
   const { t, rel } = useT()
@@ -83,8 +84,8 @@ export default function TicketCard({
   return (
     <article
       className="rise flex flex-col gap-2 rounded-lg border border-line bg-card px-4 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.45)] hover:border-line-strong"
-      // El escalonado se corta pronto: pasada la primera pantalla ya no aporta
-      // y retrasar filas que el usuario esta mirando es peor que no animarlas.
+      // The stagger is cut early: past the first screen it adds nothing, and
+      // delaying rows the user is looking at is worse than not animating them.
       style={{ animationDelay: `${Math.min(index, 12) * 22}ms` }}
     >
       <div className="flex flex-wrap items-center gap-x-[9px] gap-y-1.5">

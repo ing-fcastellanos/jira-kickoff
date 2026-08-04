@@ -6,22 +6,23 @@ import type { ActivityResponse, TicketActivity } from '../types'
 import { isDirty, listWorktrees } from '../worktree'
 
 /**
- * Estado de cada ticket ya inicializado.
+ * State of every already-initialized ticket.
  *
- * El worktree se deriva de git, que no puede desincronizarse: si lo borras a
- * mano, el ticket vuelve a aparecer como no empezado, que es la verdad. El
- * historial cubre lo que git ya olvido — que se inicializo y se limpio despues.
+ * The worktree is derived from git, which cannot fall out of sync: if you delete
+ * it by hand, the ticket goes back to showing as not started, which is the
+ * truth. The history covers what git has already forgotten — that it was
+ * initialized and cleaned up afterwards.
  *
- * Solo consulta git local. Nada de red: esto se pide junto con la lista de
- * tickets y no puede costar lo que cuesta un `ls-remote`.
+ * It only queries local git. No network: this is requested alongside the ticket
+ * list and cannot cost what an `ls-remote` costs.
  */
 /**
- * Forma de una clave de Jira: `ABC-123`, sin nada detras.
+ * Shape of a Jira key: `ABC-123`, with nothing after it.
  *
- * En la carpeta de worktrees conviven los que crea este panel, nombrados como el
- * ticket, y los que crea la propia app de Claude Code con nombres generados
- * (`silly-turing-0ec969`) o derivados (`abc-123-explore-2fa6d7`). Solo los
- * primeros representan «este ticket esta empezado».
+ * The worktrees folder is shared between the ones this panel creates, named
+ * after the ticket, and the ones the Claude Code app creates itself with
+ * generated (`silly-turing-0ec969`) or derived (`abc-123-explore-2fa6d7`) names.
+ * Only the former mean "this ticket is started".
  */
 const TICKET_KEY = /^[A-Z][A-Z0-9]*-\d+$/
 
@@ -35,9 +36,9 @@ export const activityRoutes: FastifyPluginAsync<{
     const config = store.get()
     const byTicket: Record<string, TicketActivity> = {}
 
-    // El worktree se nombra como el ticket, asi que el nombre de la carpeta es
-    // la clave. Las carpetas que no correspondan a un ticket simplemente no
-    // encajaran con ninguno de la lista.
+    // The worktree is named after the ticket, so the folder name is the key.
+    // Folders that do not correspond to a ticket simply will not match any of
+    // the ones in the list.
     await Promise.all(
       Object.entries(config.projects).map(async ([projectKey, project]) => {
         const root = resolve(project.repo, config.worktrees.dir)
@@ -46,7 +47,7 @@ export const activityRoutes: FastifyPluginAsync<{
         try {
           entries = await listWorktrees(project.repo)
         } catch {
-          return // Un repo inaccesible no debe tumbar el resto de la lista.
+          return // An unreachable repo must not bring down the rest of the list.
         }
 
         const managed = entries.filter((w) =>

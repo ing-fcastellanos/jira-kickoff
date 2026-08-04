@@ -6,7 +6,7 @@ interface Ctx {
   locale: Locale
   setLocale: (l: Locale) => void
   t: (key: Key, vars?: Record<string, string | number>) => string
-  /** Tiempo relativo ya localizado: «hace 3 horas» / «3 hours ago». */
+  /** Relative time, already localized: "3 hours ago" / «hace 3 horas». */
   rel: (iso: string) => string
 }
 
@@ -33,12 +33,12 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     setLocaleState(l)
   }, [])
 
-  // El cliente HTTP produce dos mensajes propios y no puede usar el hook.
+  // The HTTP client produces two messages of its own and cannot use the hook.
   useEffect(() => setApiLocale(locale), [locale])
 
   const value = useMemo<Ctx>(() => {
-    // Intl evita mantener un catalogo de plurales y declinaciones por idioma,
-    // que es justo la parte de traducir que mas se rompe.
+    // Intl avoids maintaining a catalogue of plurals and declensions per
+    // language, which is exactly the part of translating that breaks most.
     const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
 
     return {

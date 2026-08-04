@@ -6,11 +6,11 @@ import { fileURLToPath } from 'node:url'
 const APP = 'jira-kickoff'
 
 /**
- * Raiz del paquete, buscando el package.json hacia arriba.
+ * Package root, searching upwards for package.json.
  *
- * No se puede fijar el numero de saltos: ejecutando desde fuente el modulo esta
- * en `src/`, y empaquetado en `dist/server/`. Buscar el marcador funciona en
- * ambos casos y sobrevive a que cambie la estructura de salida.
+ * The number of hops cannot be fixed: running from source the module is in
+ * `src/`, and bundled it is in `dist/server/`. Looking for the marker works in
+ * both cases and survives a change in the output structure.
  */
 export function packageRoot(from = dirname(fileURLToPath(import.meta.url))): string {
   let dir = from
@@ -24,31 +24,31 @@ export function packageRoot(from = dirname(fileURLToPath(import.meta.url))): str
 }
 
 /**
- * Version publicada, leida del package.json en cada arranque.
+ * Published version, read from package.json on every start.
  *
- * No se importa el JSON: eso obliga a `with { type: 'json' }` y esbuild acabaria
- * horneando el numero en el bundle, que es justo lo que no queremos si alguien
- * repara el paquete a mano. El package.json siempre viaja en el tarball de npm,
- * asi que el archivo esta donde `packageRoot` lo busca.
+ * The JSON is not imported: that requires `with { type: 'json' }` and esbuild
+ * would end up baking the number into the bundle, which is exactly what we do
+ * not want if someone patches the package by hand. package.json always travels
+ * in the npm tarball, so the file is where `packageRoot` looks for it.
  */
 export function packageVersion(): string {
   try {
     const raw = readFileSync(join(packageRoot(), 'package.json'), 'utf8')
-    return (JSON.parse(raw) as { version?: string }).version ?? 'desconocida'
+    return (JSON.parse(raw) as { version?: string }).version ?? 'unknown'
   } catch {
-    return 'desconocida'
+    return 'unknown'
   }
 }
 
 /**
- * Carpeta de configuracion del usuario.
+ * The user's configuration folder.
  *
- * Ejecutado con `npx`, el paquete vive en una cache temporal que npm puede
- * borrar: guardar ahi la configuracion seria perderla. Va en la carpeta del
- * usuario, siguiendo la convencion de cada sistema.
+ * Run with `npx`, the package lives in a temporary cache that npm may delete:
+ * storing the configuration there would mean losing it. It goes in the user's
+ * folder, following each system's convention.
  *
- * `JTW_CONFIG_DIR` la sobreescribe, que es lo que permite probar sin tocar la
- * configuracion real de quien ejecuta.
+ * `JTW_CONFIG_DIR` overrides it, which is what makes it possible to test without
+ * touching the real configuration of whoever runs it.
  */
 export function configDir(): string {
   const override = process.env.JTW_CONFIG_DIR?.trim()
@@ -73,9 +73,9 @@ export function configPath(): string {
 }
 
 /**
- * Las credenciales van aparte del resto de la configuracion a proposito:
- * config.json se comparte, se pega en un issue o sale en una captura, y el
- * token de Jira no debe viajar con el.
+ * Credentials are kept apart from the rest of the configuration on purpose:
+ * config.json gets shared, pasted into an issue or caught in a screenshot, and
+ * the Jira token should not travel with it.
  */
 export function credentialsPath(): string {
   return join(configDir(), 'credentials.json')

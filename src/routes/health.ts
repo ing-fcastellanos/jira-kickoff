@@ -42,7 +42,7 @@ function inspectProjects(config: AppConfig): ProjectHealth[] {
       baseBranch: project.baseBranch,
       enabled: project.enabled,
       repoExists,
-      // En un worktree .git es un archivo, en el repo principal un directorio.
+      // In a worktree .git is a file, in the main repo a directory.
       isGitRepo: repoExists && existsSync(join(project.repo, '.git')),
     }
   })
@@ -59,7 +59,7 @@ export function buildHealth(config: AppConfig, git: string | null): Health {
   if (!git) {
     problems.push('git no esta disponible en el PATH')
   }
-  // Un proyecto desactivado con la ruta rota no impide trabajar en los demas.
+  // A disabled project with a broken path does not block working on the rest.
   for (const p of projects.filter((p) => p.enabled)) {
     if (!p.repoExists) problems.push(`${p.key}: la ruta ${p.repo} no existe`)
     else if (!p.isGitRepo) problems.push(`${p.key}: ${p.repo} no es un repositorio git`)

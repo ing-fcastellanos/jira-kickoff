@@ -2,8 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// La UI vive en web/ y se compila a dist/web, que Fastify sirve en produccion.
-// En desarrollo Vite corre aparte y proxea /api al servidor local.
+// The UI lives in web/ and compiles to dist/web, which Fastify serves in
+// production. In development Vite runs separately and proxies /api to the local
+// server.
 export default defineConfig({
   root: 'web',
   plugins: [react(), tailwindcss()],

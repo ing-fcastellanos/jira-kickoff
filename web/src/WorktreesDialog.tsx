@@ -9,7 +9,7 @@ type Load =
   | { status: 'error'; message: string }
   | { status: 'ready'; data: WorktreesResponse }
 
-/** Botones de fila: mas compactos que los de cabecera. */
+/** Row buttons: more compact than the header ones. */
 const SMALL = 'px-2.5 py-1 text-[11.5px]'
 
 function isRisky(w: WorktreeInfo): boolean {
@@ -87,8 +87,8 @@ function Row({
     }
   }, [w, risky, alsoBranch, onRemoved])
 
-  // Se enumera lo que se pierde en vez de decir "hay cambios": el usuario
-  // decide distinto si son ediciones sin guardar o commits que no ha subido.
+  // What is lost is enumerated instead of saying "there are changes": the user
+  // decides differently for unsaved edits than for commits they have not pushed.
   const losses = [
     w.dirty ? t('wt.losesUncommitted') : null,
     w.unpushed > 0 ? t('wt.losesUnpushed', { n: w.unpushed }) : null,

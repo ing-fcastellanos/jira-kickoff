@@ -3,7 +3,7 @@
     "port": 8787
   },
   "jira": {
-    "site": "https://tu-dominio.atlassian.net",
+    "site": "https://your-domain.atlassian.net",
     "statuses": ["To Do", "In Progress"],
     "extraJql": ""
   },
@@ -26,12 +26,12 @@
   },
   "projects": {
     "ABC": {
-      "repo": "/ruta/a/tu/repositorio",
+      "repo": "/path/to/your/repository",
       "baseBranch": "main",
       "enabled": true
     },
     "XYZ": {
-      "repo": "C:\\ruta\\a\\otro\\repositorio",
+      "repo": "C:\\path\\to\\another\\repository",
       "baseBranch": "develop",
       "enabled": true
     }

@@ -12,8 +12,8 @@ function prefersDark(): boolean {
 }
 
 /**
- * El tema es preferencia del navegador, no del proyecto: vive en localStorage y
- * no en config.json, para que dos maquinas puedan verlo distinto.
+ * The theme is a browser preference, not a project one: it lives in localStorage
+ * and not in config.json, so that two machines can see it differently.
  */
 export function applyTheme(theme: Theme): void {
   localStorage.setItem(KEY, theme)
@@ -22,7 +22,7 @@ export function applyTheme(theme: Theme): void {
   document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
 }
 
-/** Con el tema en `system` hay que seguir los cambios del sistema en vivo. */
+/** With the theme on `system`, system changes have to be followed live. */
 export function watchSystemTheme(getTheme: () => Theme): () => void {
   const media = window.matchMedia('(prefers-color-scheme: dark)')
   const onChange = () => {

@@ -10,22 +10,22 @@ export interface PromptContext {
 }
 
 /**
- * El handler de la app trunca `q` a 16 KiB menos 2 KiB de holgura.
- * Valor leido del binario (`1024*16 - 2*1024`), no estimado.
+ * The app's handler truncates `q` at 16 KiB minus 2 KiB of slack.
+ * Value read from the binary (`1024*16 - 2*1024`), not estimated.
  */
 export const PROMPT_MAX_LENGTH = 14_336
 
 /**
- * Por debajo de esto no hay riesgo. Por encima, el URL-encoding puede acercar la
- * linea de comandos de Windows a su tope de 32 767 caracteres, asi que la UI avisa.
+ * Below this there is no risk. Above it, URL-encoding can push the Windows
+ * command line towards its 32,767-character cap, so the UI warns.
  */
 export const PROMPT_WARN_LENGTH = 8_000
 
 /**
- * Tope del deep link ya codificado. La URL viaja como argumento de linea de
- * comandos de Windows, cuyo limite duro son 32 767 caracteres. El URL-encoding
- * puede triplicar el tamano del prompt, asi que un prompt valido para la app
- * (14 336) todavia puede generar una URL impasable. Se corta antes con holgura.
+ * Cap for the already-encoded deep link. The URL travels as a Windows command
+ * line argument, whose hard limit is 32,767 characters. URL-encoding can triple
+ * the size of the prompt, so a prompt that is valid for the app (14,336) can
+ * still produce an unpassable URL. It is cut earlier, with slack.
  */
 export const URL_SAFE_LENGTH = 30_000
 
@@ -47,8 +47,8 @@ function render(template: string, ctx: PromptContext): string {
 }
 
 /**
- * Base y adiciones, en ese orden. Las adiciones vacias se descartan para que
- * comentar una linea en config.json no deje un hueco en el prompt.
+ * Base and additions, in that order. Empty additions are discarded so that
+ * commenting out a line in config.json does not leave a gap in the prompt.
  */
 export function composePrompt(config: PromptConfig, ctx: PromptContext): string {
   const base = render(config.base, ctx).trim()

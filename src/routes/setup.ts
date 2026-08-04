@@ -22,7 +22,7 @@ export interface SetupState {
   paths: { config: string; credentials: string }
 }
 
-/** Acepta `acme.atlassian.net`, con o sin esquema, y devuelve el origen limpio. */
+/** Accepts `acme.atlassian.net`, with or without a scheme, and returns a clean origin. */
 export function normalizeSite(input: string): string {
   const trimmed = input.trim().replace(/\/+$/, '')
   const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
@@ -46,11 +46,11 @@ export const setupRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async (ap
   })
 
   /**
-   * Guarda las credenciales solo despues de que Jira las acepte.
+   * Saves the credentials only after Jira accepts them.
    *
-   * Escribir primero y fallar despues dejaria al usuario con un token invalido
-   * en disco y sin saber por que no ve nada; el viaje de ida y vuelta a Jira
-   * cuesta menos que ese diagnostico.
+   * Writing first and failing afterwards would leave the user with an invalid
+   * token on disk and no idea why they see nothing; the round trip to Jira costs
+   * less than that diagnosis.
    */
   app.post('/api/setup/credentials', async (req, reply) => {
     const parsed = credentialsBody.safeParse(req.body)
@@ -77,8 +77,8 @@ export const setupRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async (ap
     try {
       displayName = (await client.myself()).displayName
     } catch (err) {
-      // `err.message` siempre viene en ingles, para que las trazas se lean sin
-      // contexto de peticion. Lo que ve el usuario tiene que pasar por aqui.
+      // `err.message` always comes in English, so that traces read without
+      // request context. What the user sees has to go through here.
       if (err instanceof LocalizedError) {
         return reply.status(400).send({ error: err.localized(langOf(reply)) })
       }
@@ -89,7 +89,7 @@ export const setupRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async (ap
 
     writeCredentials({ jiraEmail: parsed.data.email.trim(), jiraToken: parsed.data.token.trim() })
 
-    // El sitio va en la configuracion; el token, en el archivo aparte.
+    // The site goes in the configuration; the token, in the separate file.
     const current = store.get()
     const { port: _p, jiraEmail: _e, jiraToken: _t, configured: _c, ...file } = current
     store.save({ ...file, jira: { ...file.jira, site } })

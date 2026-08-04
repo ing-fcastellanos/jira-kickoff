@@ -1,9 +1,9 @@
 /**
- * Cliente minimo de la API REST v3 de Jira Cloud.
+ * Minimal client for Jira Cloud's REST v3 API.
  *
- * Usa `/rest/api/3/search/jql`, el endpoint vigente: el viejo `/rest/api/3/search`
- * esta deprecado. Devuelve `{ issues, nextPageToken, isLast }` y pagina por token,
- * no por indice.
+ * Uses `/rest/api/3/search/jql`, the current endpoint: the old
+ * `/rest/api/3/search` is deprecated. It returns
+ * `{ issues, nextPageToken, isLast }` and pages by token, not by index.
  */
 
 import { LocalizedError, RawError, type MessageKey, type Vars } from './messages'
@@ -14,7 +14,7 @@ export class JiraError extends LocalizedError {
   }
 }
 
-/** El texto lo escribe Jira, asi que se muestra tal cual. */
+/** The text is written by Jira, so it is shown verbatim. */
 export class JiraPlainError extends RawError {}
 
 export interface JiraIssue {
@@ -66,16 +66,17 @@ export interface JiraCredentials {
 }
 
 /**
- * Escapa un valor para interpolarlo en JQL entre comillas dobles.
- * Los nombres de status llevan espacios ("To Do"), asi que citarlos no es opcional.
+ * Escapes a value so it can be interpolated into JQL between double quotes.
+ * Status names contain spaces ("To Do"), so quoting them is not optional.
  */
 export function jqlQuote(value: string): string {
   return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
 }
 
 /**
- * `extraJql` se inserta antes del ORDER BY, que en JQL tiene que ir al final.
- * Se envuelve en parentesis para que un filtro con OR no se cuele en el AND.
+ * `extraJql` is inserted before the ORDER BY, which in JQL has to come last.
+ * It is wrapped in parentheses so that a filter with an OR does not leak into
+ * the AND.
  */
 export function buildAssignedJql(
   projects: string[],
@@ -90,7 +91,7 @@ export function buildAssignedJql(
 
 const FIELDS = ['summary', 'status', 'issuetype', 'priority', 'updated', 'project']
 
-/** Tope de paginas por consulta. Si se alcanza es que la JQL esta mal, no que hay tanto trabajo. */
+/** Page cap per query. Hitting it means the JQL is wrong, not that there is that much work. */
 const MAX_PAGES = 10
 
 export class JiraClient {
@@ -120,13 +121,13 @@ export class JiraClient {
     }
 
     if (res.status === 401) {
-      // Neutro a proposito: el mismo error se ve en el asistente, donde el
-      // usuario acaba de teclear los datos, y en el panel ya configurado.
+      // Neutral on purpose: the same error is seen in the wizard, where the user
+      // has just typed the details, and in the already configured panel.
       throw new JiraError('err.credentials', undefined, 401)
     }
     if (!res.ok) {
-      // Si Jira explica el fallo, su texto gana: es mas concreto que cualquier
-      // cosa que podamos decir aqui, aunque venga en ingles.
+      // If Jira explains the failure, its text wins: it is more concrete than
+      // anything we could say here, even if it arrives in another language.
       const detail = extractJiraMessage(await res.text())
       if (detail) throw new JiraPlainError(detail, res.status)
       throw new JiraError('err.jiraStatus', { status: res.status }, res.status)
@@ -139,7 +140,7 @@ export class JiraClient {
     return this.request('/rest/api/3/myself')
   }
 
-  /** Ficha completa de un ticket. La descripcion y los comentarios llegan en ADF. */
+  /** Full record of a ticket. The description and the comments arrive as ADF. */
   async issue(key: string): Promise<JiraIssueDetail> {
     const fields = [
       'summary',
@@ -184,7 +185,7 @@ export class JiraClient {
   }
 }
 
-/** Jira devuelve los errores en `errorMessages[]`; el texto crudo es ruido. */
+/** Jira returns errors in `errorMessages[]`; the raw text is noise. */
 function extractJiraMessage(body: string): string | null {
   try {
     const parsed = JSON.parse(body) as { errorMessages?: string[] }

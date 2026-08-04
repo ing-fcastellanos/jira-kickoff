@@ -17,8 +17,8 @@ export type HistoryEntry = z.infer<typeof entrySchema>
 const fileSchema = z.object({ entries: z.array(entrySchema).default([]) })
 
 /**
- * Tope de entradas. Es un registro de conveniencia, no una bitacora: pasado
- * cierto punto lo viejo no aporta y solo hace crecer el archivo.
+ * Entry cap. This is a convenience record, not a logbook: past a certain point
+ * the old entries add nothing and only grow the file.
  */
 const MAX_ENTRIES = 500
 
@@ -29,11 +29,12 @@ export interface TicketHistory {
 }
 
 /**
- * Registro de inicializaciones.
+ * Record of initializations.
  *
- * Complementa a git, no lo sustituye: si un worktree existe ahora mismo lo dice
- * git, que no puede desincronizarse. Esto responde a lo que git ya olvido — que
- * un ticket se inicializo y su worktree se limpio despues.
+ * It complements git, it does not replace it: whether a worktree exists right
+ * now is answered by git, which cannot fall out of sync. This answers what git
+ * has already forgotten — that a ticket was initialized and its worktree cleaned
+ * up afterwards.
  */
 export class HistoryStore {
   private entries: HistoryEntry[]
@@ -46,14 +47,14 @@ export class HistoryStore {
   }
 
   static load(): HistoryStore {
-    // Junto a la configuracion, no junto al codigo: con `npx` el paquete vive
-    // en una cache temporal y el historial se perderia en cada ejecucion.
+    // Next to the configuration, not next to the code: with `npx` the package
+    // lives in a temporary cache and the history would be lost on every run.
     const path = join(configDir(), 'history.json')
     if (!existsSync(path)) return new HistoryStore(path, [])
 
     try {
       const parsed = fileSchema.safeParse(JSON.parse(readFileSync(path, 'utf8')))
-      // Un historial corrupto no debe impedir trabajar: se empieza de cero.
+      // A corrupt history must not block working: it starts from scratch.
       return new HistoryStore(path, parsed.success ? parsed.data.entries : [])
     } catch {
       return new HistoryStore(path, [])
@@ -69,11 +70,11 @@ export class HistoryStore {
     renameSync(tmp, this.path)
   }
 
-  /** Resumen por ticket, que es como lo consume la lista. */
+  /** Summary per ticket, which is how the list consumes it. */
   byTicket(): Record<string, TicketHistory> {
     const out: Record<string, TicketHistory> = {}
-    // Las entradas van de mas reciente a mas antigua: la primera de cada
-    // ticket es la ultima vez que se inicializo.
+    // Entries go from newest to oldest: the first one for each ticket is the
+    // last time it was initialized.
     for (const e of this.entries) {
       const current = out[e.ticketKey]
       if (current) current.times += 1

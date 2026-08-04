@@ -4,11 +4,11 @@ import { LocalizedError, RawError } from './messages'
 
 const run = promisify(execFile)
 
-/** `ls-remote` sale a la red; sin tope, una VPN caida cuelga la peticion entera. */
+/** `ls-remote` goes to the network; with no cap, a dead VPN hangs the whole request. */
 const REMOTE_TIMEOUT_MS = 20_000
 const LOCAL_TIMEOUT_MS = 5_000
 
-/** Lo que sale de git es diagnostico real; se muestra sin traducir. */
+/** What comes out of git is real diagnostics; it is shown untranslated. */
 export class GitError extends RawError {}
 
 async function git(repo: string, args: string[], timeout: number): Promise<string> {
@@ -32,8 +32,8 @@ async function git(repo: string, args: string[], timeout: number): Promise<strin
 }
 
 /**
- * Ramas del remoto. Usa las credenciales que git ya tiene configuradas
- * (en Windows, Git Credential Manager), asi que no hace falta token de GitHub.
+ * Remote branches. Uses the credentials git already has configured (on Windows,
+ * Git Credential Manager), so no GitHub token is needed.
  */
 export async function remoteBranches(repo: string): Promise<string[]> {
   const stdout = await git(repo, ['ls-remote', '--heads', 'origin'], REMOTE_TIMEOUT_MS)
