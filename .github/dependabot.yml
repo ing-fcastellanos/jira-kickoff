@@ -1,0 +1,26 @@
+version: 2
+
+updates:
+  # Las actions se pinean por tag mayor (`@v4`) y ese tag no se mueve solo: sin
+  # esto, checkout y setup-node se quedan en la version del dia que se escribio
+  # el workflow. Es el ecosistema que mas se olvida y el mas barato de revisar.
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: monthly
+    # Sin agrupar, un lunes cualquiera son diez PR que nadie revisa. Menor y
+    # parche van juntos por tipo de dependencia; las mayores siguen llegando
+    # sueltas, que es cuando de verdad hay que leer el changelog.
+    groups:
+      produccion:
+        dependency-type: production
+        update-types: [minor, patch]
+      desarrollo:
+        dependency-type: development
+        update-types: [minor, patch]
+    open-pull-requests-limit: 5
