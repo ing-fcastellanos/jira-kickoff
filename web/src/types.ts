@@ -32,7 +32,7 @@ export interface FileConfig {
   jira: { site: string; statuses: string[]; extraJql: string }
   worktrees: { dir: string; alignOriginHead: boolean }
   branch: { pattern: string; slugMaxLength: number }
-  launch: { mode: 'open' | 'clipboard'; permissionMode: PermissionMode }
+  launch: { mode: 'open' | 'clipboard'; permissionMode: PermissionMode; defaultModel: string }
   editor: { label: string; command: string; args: string[] }
   prompt: PromptSettings
   projects: Record<string, ProjectSettings>
@@ -116,6 +116,7 @@ export interface InitializeResult {
   launchMode: 'open' | 'clipboard'
   launched: boolean
   launchError: string | null
+  model: string | null
 }
 
 export interface TicketComment {
@@ -189,5 +190,6 @@ export interface BranchesResponse {
   matches: Branch[]
   branches: Branch[]
   remoteError: string | null
+  defaultModel: string
   fetchedAt: string
 }

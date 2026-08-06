@@ -47,6 +47,8 @@ export interface InitializeResult {
   /** The protocol handler accepted the invocation; not that the session opened. */
   launched: boolean
   launchError: string | null
+  /** Null when inherited: nothing was written to the worktree's settings. */
+  model: string | null
 }
 
 export interface TicketComment {
@@ -128,5 +130,7 @@ export interface BranchesResponse {
   branches: Branch[]
   /** If the remote did not answer: the list is local only and this says why. */
   remoteError: string | null
+  /** The configured default model, so the dialog can preselect it before any override. */
+  defaultModel: string
   fetchedAt: string
 }

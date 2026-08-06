@@ -2,7 +2,17 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FileConfig, Placeholder, SettingsResponse } from './types'
 import { getJson, postJson, putJson } from './api'
 import { applyTheme, readTheme, type Theme } from './theme'
-import { Button, Field, Heading, Key, Modal, Note, inputClass, monoInputClass } from './ui'
+import {
+  Button,
+  Field,
+  Heading,
+  Key,
+  Modal,
+  ModelPicker,
+  Note,
+  inputClass,
+  monoInputClass,
+} from './ui'
 import { useT } from './LocaleProvider'
 import { LOCALES, LOCALE_NAMES, type Key as MsgKey, type Locale } from './i18n'
 
@@ -24,6 +34,13 @@ const PERMISSION_MODES: { value: FileConfig['launch']['permissionMode']; key: Ms
   { value: 'acceptEdits', key: 'set.permAcceptEdits' },
   { value: 'auto', key: 'set.permAuto' },
   { value: 'bypassPermissions', key: 'set.permBypass' },
+]
+
+const MODEL_PRESETS: { value: string; key: MsgKey }[] = [
+  { value: '', key: 'set.modelInherit' },
+  { value: 'opus', key: 'set.modelOpus' },
+  { value: 'sonnet', key: 'set.modelSonnet' },
+  { value: 'haiku', key: 'set.modelHaiku' },
 ]
 
 function Section({ children }: { children: React.ReactNode }) {
@@ -545,6 +562,15 @@ export default function SettingsDialog({
                     </option>
                   ))}
                 </select>
+              </Field>
+
+              <Field label={t('set.defaultModel')} hint={t('set.defaultModelHint')}>
+                <ModelPicker
+                  value={draft.launch.defaultModel}
+                  onChange={(v) => patch((d) => void (d.launch.defaultModel = v))}
+                  presets={MODEL_PRESETS.map((m) => ({ value: m.value, label: t(m.key) }))}
+                  placeholder={t('set.modelPlaceholder')}
+                />
               </Field>
             </Section>
           </>

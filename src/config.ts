@@ -58,8 +58,19 @@ const configSchema = z.object({
       permissionMode: z
         .enum(['inherit', 'default', 'plan', 'acceptEdits', 'auto', 'bypassPermissions'])
         .default('inherit'),
+      /**
+       * Model alias ("opus", "sonnet", "haiku") or full model id for sessions
+       * started from a worktree. Empty means inherit, same idea as
+       * permissionMode: nothing is written and the app picks its own default.
+       *
+       * Written to the same `.claude/settings.local.json` as permissionMode, for
+       * the same reason the deep link cannot carry it. Free string and not an
+       * enum on purpose: model ids and aliases change over releases, and pinning
+       * them here would mean a code change every time one does.
+       */
+      defaultModel: z.string().trim().default(''),
     })
-    .default({ mode: 'open', permissionMode: 'inherit' }),
+    .default({ mode: 'open', permissionMode: 'inherit', defaultModel: '' }),
   editor: z
     .object({
       label: z.string().min(1),
@@ -93,7 +104,7 @@ export const DEFAULT_CONFIG: FileConfig = {
   jira: { site: '', statuses: ['To Do', 'In Progress'], extraJql: '' },
   worktrees: { dir: '.worktrees', alignOriginHead: false },
   branch: { pattern: 'feature/{{ticket-lower}}-{{slug}}', slugMaxLength: 40 },
-  launch: { mode: 'open', permissionMode: 'inherit' },
+  launch: { mode: 'open', permissionMode: 'inherit', defaultModel: '' },
   editor: { label: 'VS Code', command: 'code', args: ['-n', '{{path}}'] },
   prompt: {
     base: 'Vamos a trabajar el ticket {{ticket}}.',
