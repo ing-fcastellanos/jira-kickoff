@@ -24,7 +24,7 @@ jobs:
         # 20 is the minimum `engines` declares; it has to be actually checked.
         node: ['20', '22', '24']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
         with:
