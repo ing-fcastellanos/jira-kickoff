@@ -1,7 +1,7 @@
 version: 2
 
 updates:
-  # Actions are pinned by major tag (`@v4`) and that tag does not move on its
+  # Actions are pinned by major tag (`@v7`) and that tag does not move on its
   # own: without this, checkout and setup-node stay on the version of the day the
   # workflow was written. It is the most forgotten ecosystem and the cheapest to
   # review.
@@ -24,4 +24,12 @@ updates:
       development:
         dependency-type: development
         update-types: [minor, patch]
+    # @types/node has to follow the oldest Node this package supports, not the
+    # newest one released. `engines` says >=20, and types from a newer major
+    # describe APIs that node 20 does not have: tsc would then accept code that
+    # crashes on the minimum we promise, and nothing in CI starts the server to
+    # catch it. This major moves by hand, and together with `engines`.
+    ignore:
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
     open-pull-requests-limit: 5
