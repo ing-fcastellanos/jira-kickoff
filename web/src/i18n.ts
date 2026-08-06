@@ -64,6 +64,8 @@ export const en = {
   'branch.originRemoteLocal': 'remote + local',
   'branch.originRemote': 'remote',
   'branch.originLocal': 'local',
+  'branch.model': 'Model',
+  'branch.modelHint': 'Overrides the default for this session only.',
   'branch.prompt': 'Initial prompt',
   'branch.promptTooLong': 'Longer than the app accepts; it would be truncated.',
   'branch.promptNearLimit':
@@ -80,6 +82,7 @@ export const en = {
   'result.failed': 'Worktree ready, but I could not open the session',
   'result.branch': 'Branch',
   'result.worktree': 'Worktree',
+  'result.model': 'Model',
   'result.what': 'What happened',
   'result.copyPrompt': 'Copy prompt',
   'result.copyPath': 'Copy path',
@@ -186,6 +189,15 @@ export const en = {
   'set.permAuto': 'Auto',
   'set.permBypass': 'Bypass permissions',
 
+  'set.defaultModel': 'Default Claude model',
+  'set.defaultModelHint':
+    'Written to the worktree’s .claude/settings.local.json, next to the permission mode. Leave on Inherit to use whatever your own Claude Code settings already pick.',
+  'set.modelInherit': 'Inherit',
+  'set.modelOpus': 'Opus',
+  'set.modelSonnet': 'Sonnet',
+  'set.modelHaiku': 'Haiku',
+  'set.modelPlaceholder': 'opus, sonnet, haiku, or a full model id',
+
   'onb.title': 'Set up your panel',
   'onb.intro': 'Two steps. Everything is stored on your machine, in',
   'onb.step1': 'Connect to Jira',
@@ -267,6 +279,8 @@ const es: Record<Key, string> = {
   'branch.originRemoteLocal': 'remota + local',
   'branch.originRemote': 'remota',
   'branch.originLocal': 'local',
+  'branch.model': 'Modelo',
+  'branch.modelHint': 'Sobreescribe el valor por defecto solo para esta sesión.',
   'branch.prompt': 'Prompt inicial',
   'branch.promptTooLong': 'Excede lo que acepta la app; se truncaría.',
   'branch.promptNearLimit':
@@ -283,6 +297,7 @@ const es: Record<Key, string> = {
   'result.failed': 'Worktree listo, pero no pude abrir la sesión',
   'result.branch': 'Rama',
   'result.worktree': 'Worktree',
+  'result.model': 'Modelo',
   'result.what': 'Qué pasó',
   'result.copyPrompt': 'Copiar prompt',
   'result.copyPath': 'Copiar ruta',
@@ -388,6 +403,15 @@ const es: Record<Key, string> = {
   'set.permAcceptEdits': 'Aceptar ediciones',
   'set.permAuto': 'Auto',
   'set.permBypass': 'Saltar permisos',
+
+  'set.defaultModel': 'Modelo de Claude por defecto',
+  'set.defaultModelHint':
+    'Se escribe en el .claude/settings.local.json del worktree, junto al modo de permisos. Déjalo en Heredar para usar lo que ya elijan tus propios settings de Claude Code.',
+  'set.modelInherit': 'Heredar',
+  'set.modelOpus': 'Opus',
+  'set.modelSonnet': 'Sonnet',
+  'set.modelHaiku': 'Haiku',
+  'set.modelPlaceholder': 'opus, sonnet, haiku, o un id de modelo completo',
 
   'onb.title': 'Configura tu panel',
   'onb.intro': 'Dos pasos. Todo se guarda en tu equipo, en',

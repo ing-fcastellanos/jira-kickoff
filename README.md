@@ -89,7 +89,7 @@ validation before writing and an atomic write:
 | Branch and worktree | Branch name pattern, with a live preview, where worktrees are created, and whether to align `origin/HEAD` with the base branch. |
 | Editor | Which command opens a worktree from the list, and with which arguments. |
 | Initial prompt | The base command and the fixed lines that go with it. |
-| On initialize | Open the session or just copy the prompt, and the session's permission mode. |
+| On initialize | Open the session or just copy the prompt, the session's permission mode, and the default model. |
 
 The Jira token is **not** editable from the web on purpose: it lives in `.env` and there
 is no reason to put it in a form when a file already solves it.
@@ -175,7 +175,7 @@ created before trying to open anything.
 Known limits of the handler: `q` is truncated at 14,336 characters, and the `file`
 parameter is accepted but never forwarded to the UI.
 
-### Two things the deep link does not carry
+### Three things the deep link does not carry
 
 **The base branch.** Claude Code works out a repo's main branch by running
 `git symbolic-ref --short refs/remotes/origin/HEAD` and stripping the `origin/` prefix.
@@ -198,6 +198,13 @@ It has to be that file and not the repository's versioned `settings.json`: eleva
 modes (`auto`, `acceptEdits`, `bypassPermissions`) arriving from the `project` tier are
 **silently discarded** by the app, so that a repository cannot grant itself permissions.
 From the `local` tier or the user tier they are honoured.
+
+**The model.** Same story, same file: the *Default Claude model* option in Options
+writes `model` into the worktree's `.claude/settings.local.json`, next to
+`permissions.defaultMode`. Leave it on *Inherit* and nothing is written, so the session
+picks whatever your own Claude Code settings already choose. The initialization dialog
+preselects that default and lets you override it for one session only — the override
+never touches Options, it is written straight into that ticket's worktree.
 
 ### The launcher on Windows
 

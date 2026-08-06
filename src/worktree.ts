@@ -175,6 +175,27 @@ export async function setOriginHead(repo: string, branch: string): Promise<void>
   await git(repo, ['remote', 'set-head', 'origin', branch], QUICK_MS)
 }
 
+/** Reads the worktree's `.claude/settings.local.json`, or `{}` if missing or corrupt. */
+async function readWorktreeSettings(worktreePath: string): Promise<Record<string, unknown>> {
+  const file = join(worktreePath, '.claude', 'settings.local.json')
+  if (!existsSync(file)) return {}
+  try {
+    return JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>
+  } catch {
+    // A corrupt file must not bring down the initialization; it gets rewritten.
+    return {}
+  }
+}
+
+async function writeWorktreeSettings(
+  worktreePath: string,
+  next: Record<string, unknown>,
+): Promise<void> {
+  const dir = join(worktreePath, '.claude')
+  await mkdir(dir, { recursive: true })
+  await writeFile(join(dir, 'settings.local.json'), `${JSON.stringify(next, null, 2)}\n`, 'utf8')
+}
+
 /**
  * Sets the worktree's default permission mode.
  *
@@ -188,24 +209,22 @@ export async function setWorktreePermissionMode(
   worktreePath: string,
   mode: string,
 ): Promise<void> {
-  const dir = join(worktreePath, '.claude')
-  const file = join(dir, 'settings.local.json')
-
-  let current: Record<string, unknown> = {}
-  if (existsSync(file)) {
-    try {
-      current = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>
-    } catch {
-      // A corrupt file must not bring down the initialization; it gets rewritten.
-      current = {}
-    }
-  }
-
+  const current = await readWorktreeSettings(worktreePath)
   const permissions = (current['permissions'] as Record<string, unknown> | undefined) ?? {}
-  const next = { ...current, permissions: { ...permissions, defaultMode: mode } }
+  await writeWorktreeSettings(worktreePath, {
+    ...current,
+    permissions: { ...permissions, defaultMode: mode },
+  })
+}
 
-  await mkdir(dir, { recursive: true })
-  await writeFile(file, `${JSON.stringify(next, null, 2)}\n`, 'utf8')
+/**
+ * Sets the model a new session starts with, the same way and for the same
+ * reason as `setWorktreePermissionMode`: the deep link has no room for it, so
+ * it is written into the worktree before the session opens.
+ */
+export async function setWorktreeModel(worktreePath: string, model: string): Promise<void> {
+  const current = await readWorktreeSettings(worktreePath)
+  await writeWorktreeSettings(worktreePath, { ...current, model })
 }
 
 export interface CreateWorktreeInput {

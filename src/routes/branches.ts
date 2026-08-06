@@ -79,6 +79,7 @@ export const branchRoutes: FastifyPluginAsync<{
       matches: branches.filter((b) => matchesTicket(b.name, ticket.key)),
       branches,
       remoteError,
+      defaultModel: config.launch.defaultModel,
       fetchedAt: new Date().toISOString(),
     }
     return payload

@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Branch, BranchesResponse, InitializeResult, PromptResponse, Ticket } from './types'
 import { getJson, postJson } from './api'
-import { Button, Key, Modal, Note, inputClass, monoInputClass } from './ui'
+import { Button, Key, Modal, ModelPicker, Note, inputClass, monoInputClass } from './ui'
 import { useT } from './LocaleProvider'
 import type { Key as MsgKey } from './i18n'
+
+const MODEL_PRESETS: { value: string; key: MsgKey }[] = [
+  { value: '', key: 'set.modelInherit' },
+  { value: 'opus', key: 'set.modelOpus' },
+  { value: 'sonnet', key: 'set.modelSonnet' },
+  { value: 'haiku', key: 'set.modelHaiku' },
+]
 
 /** A veteran repo goes past 600 branches: painting them all hangs the list and does not help. */
 const MAX_VISIBLE = 30
@@ -91,6 +98,8 @@ export default function BranchDialog({
   const [filter, setFilter] = useState('')
   const [listOpen, setListOpen] = useState(false)
 
+  const [model, setModel] = useState('')
+
   const [prompt, setPrompt] = useState('')
   const [promptMeta, setPromptMeta] = useState<Pick<
     PromptResponse,
@@ -111,6 +120,7 @@ export default function BranchDialog({
         if (cancelled) return
         setLoad({ status: 'ready', data })
         setBranchName(data.suggested)
+        setModel(data.defaultModel)
       })
       .catch((err: unknown) => {
         if (!cancelled) setLoad({ status: 'error', message: (err as Error).message })
@@ -165,6 +175,7 @@ export default function BranchDialog({
         ticketKey: ticket.key,
         branch: branchName.trim(),
         prompt,
+        model,
       })
       setResult(res)
       onInitialized()
@@ -173,7 +184,7 @@ export default function BranchDialog({
     } finally {
       setSubmitting(false)
     }
-  }, [ticket.key, branchName, prompt, onInitialized])
+  }, [ticket.key, branchName, prompt, model, onInitialized])
 
   const whereExists = existing
     ? existing.remote && existing.local
@@ -307,6 +318,17 @@ export default function BranchDialog({
                   )}
                 </div>
 
+                <div className="flex flex-col gap-1.5 border-t border-line-soft pt-3">
+                  <label className={FORM_LABEL}>{t('branch.model')}</label>
+                  <ModelPicker
+                    value={model}
+                    onChange={setModel}
+                    presets={MODEL_PRESETS.map((m) => ({ value: m.value, label: t(m.key) }))}
+                    placeholder={t('set.modelPlaceholder')}
+                  />
+                  <p className="text-[11.5px] text-ink-5">{t('branch.modelHint')}</p>
+                </div>
+
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-baseline justify-between gap-3">
                     <label htmlFor="prompt" className={FORM_LABEL}>
@@ -375,6 +397,7 @@ function ResultView({ result, onClose }: { result: InitializeResult; onClose: ()
   const rows: [string, string, boolean][] = [
     [t('result.branch'), result.branch, true],
     [t('result.worktree'), result.worktree, true],
+    [t('result.model'), result.model ?? t('set.modelInherit'), Boolean(result.model)],
     [t('result.what'), t(ACTION_KEY[result.branchAction]), false],
   ]
 

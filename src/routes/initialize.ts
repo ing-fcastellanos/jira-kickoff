@@ -12,6 +12,7 @@ import {
   fetchOrigin,
   isValidBranchName,
   setOriginHead,
+  setWorktreeModel,
   setWorktreePermissionMode,
   worktreePathFor,
 } from '../worktree'
@@ -21,6 +22,12 @@ const initializeBody = z.object({
   ticketKey: z.string().min(1),
   branch: z.string().min(1),
   prompt: z.string().min(1).max(PROMPT_MAX_LENGTH),
+  /**
+   * Already resolved by the client, same as `prompt`: empty means inherit, a
+   * value means override. The dialog preselects the configured default, so
+   * this is whatever the user ended up with, not a delta to merge with config.
+   */
+  model: z.string().trim().default(''),
 })
 
 interface Resolved {
@@ -97,7 +104,7 @@ export const initializeRoutes: FastifyPluginAsync<{
         error: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
       })
     }
-    const { ticketKey, branch, prompt } = parsed.data
+    const { ticketKey, branch, prompt, model } = parsed.data
 
     try {
       const r = await resolve(ticketKey, reply)
@@ -132,6 +139,13 @@ export const initializeRoutes: FastifyPluginAsync<{
       // the worktree before opening the session.
       if (config.launch.permissionMode !== 'inherit') {
         await setWorktreePermissionMode(r.worktree, config.launch.permissionMode)
+      }
+
+      // Same story as permission mode: the deep link has no room for a model,
+      // so it goes into the worktree first. `model` already carries whatever the
+      // dialog resolved, default or overridden.
+      if (model) {
+        await setWorktreeModel(r.worktree, model)
       }
 
       // The worktree already exists whatever happens with the deep link: if it
@@ -183,6 +197,7 @@ export const initializeRoutes: FastifyPluginAsync<{
         launchMode,
         launched,
         launchError,
+        model: model || null,
       }
       return result
     } catch (err) {

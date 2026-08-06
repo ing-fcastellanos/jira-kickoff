@@ -49,6 +49,47 @@ export const inputClass =
 
 export const monoInputClass = `${inputClass} font-mono`
 
+/**
+ * Quick-pick buttons for a Claude model, plus a mono input for any other
+ * alias or full model id. The input is not a separate "custom" mode: clicking
+ * a preset just writes its value into it, so it is always the live source of
+ * truth and needs no state of its own to track whether a custom value is set.
+ */
+export function ModelPicker({
+  value,
+  onChange,
+  presets,
+  placeholder,
+}: {
+  value: string
+  onChange: (value: string) => void
+  presets: { value: string; label: string }[]
+  placeholder: string
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        {presets.map((p) => (
+          <Button
+            key={p.value}
+            variant={value === p.value ? 'selected' : 'default'}
+            onClick={() => onChange(p.value)}
+          >
+            {p.label}
+          </Button>
+        ))}
+      </div>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        spellCheck={false}
+        className={monoInputClass}
+      />
+    </div>
+  )
+}
+
 export function Field({
   label,
   hint,
