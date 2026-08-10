@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      The .ico goes first and without a type: the browsers that need it are the
+      ones that would not understand the SVG declaration anyway. Everything
+      current picks the SVG, which is the one that follows the system theme.
+    -->
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Tickets · Claude Code</title>
   </head>
   <body>

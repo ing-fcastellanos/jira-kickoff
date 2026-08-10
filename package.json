@@ -34,6 +34,7 @@
     "build": "npm run build:web && npm run build:server",
     "build:web": "vite build",
     "build:server": "node scripts/build-server.mjs",
+    "icons": "node scripts/icons.mjs",
     "start": "node dist/server/index.js",
     "test": "node scripts/test.mjs",
     "typecheck": "tsc --noEmit",

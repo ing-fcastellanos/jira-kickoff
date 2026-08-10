@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="jira-kickoff">
+  <!--
+    A prompt mark (❯_) on the accent square: what the panel actually leaves
+    behind is a session waiting for an Enter, and that reads at 16px where a
+    ticket or a git graph turns to mush.
+
+    The colours are the ones in web/src/index.css — accent and accent-ink, light
+    pair and dark pair — so the tab matches the interface instead of guessing a
+    purple. The media query is what makes the icon legible on a dark tab strip:
+    it flips to the lavender the dark theme already uses.
+  -->
+  <style>
+    .bg { fill: #6b4fa8 }
+    .fg { stroke: #ffffff }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #c3a6f0 }
+      .fg { stroke: #201a2c }
+    }
+  </style>
+  <rect class="bg" width="32" height="32" rx="7.5" />
+  <g class="fg" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.5 10 15 16 9.5 22" />
+    <path d="M18.5 22h4" />
+  </g>
+</svg>
