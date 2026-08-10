@@ -23,6 +23,23 @@ function headers(extra?: Record<string, string>): Record<string, string> {
   return { 'Accept-Language': locale, ...extra }
 }
 
+/**
+ * A failure that arrived from the server, with the body it came with.
+ *
+ * Some answers carry more than the text: `/worktrees/remove` replies 409 with
+ * `needsForce` when it finds work that would be lost. Throwing a plain Error
+ * dropped that flag on the floor and the screen had no way to offer the retry.
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly body: Record<string, unknown> | null,
+  ) {
+    super(message)
+  }
+}
+
 /** The server returns `{ error }` on failures; that text already reads as prose. */
 export async function getJson<T>(url: string): Promise<T> {
   let res: Response
@@ -60,11 +77,12 @@ async function unwrap<T>(res: Response): Promise<T> {
   const body: unknown = await res.json().catch(() => null)
 
   if (!res.ok) {
+    const fields = body && typeof body === 'object' ? (body as Record<string, unknown>) : null
     const message =
-      body && typeof body === 'object' && 'error' in body
-        ? String((body as { error: unknown }).error)
+      fields && 'error' in fields
+        ? String(fields['error'])
         : t('common.serverSaid', { status: res.status })
-    throw new Error(message)
+    throw new ApiError(message, res.status, fields)
   }
 
   return body as T

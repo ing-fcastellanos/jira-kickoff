@@ -69,6 +69,7 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
                 branch,
                 managed: managed && !isMain,
                 isMain,
+                prunable: entry.prunable,
               }
 
               // The main worktree is not inspected: it is a candidate for nothing.
@@ -76,11 +77,21 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
                 return { ...base, dirty: false, unpushed: 0, remoteBranchExists: false, merged: false }
               }
 
-              // A worktree in detached HEAD has no branch to compare, but it can
-              // have unsaved work: that has to be looked at all the same.
+              // Nothing is asked about a dead entry. Its folder is inside the
+              // repository, so `git status` there answers for the parent repo and
+              // reports the leftovers themselves as uncommitted changes: a state
+              // that is not about this worktree and only muddies the decision.
+              if (entry.prunable) {
+                return { ...base, dirty: false, unpushed: 0, remoteBranchExists: false, merged: false }
+              }
+
+              // A worktree in detached HEAD has no branch to compare against its
+              // own remote, but it can have commits and unsaved work: an explore
+              // session leaves exactly that. It is measured against the base.
               const dirty = await isDirty(path).catch(() => false)
               if (!branch) {
-                return { ...base, dirty, unpushed: 0, remoteBranchExists: false, merged: false }
+                const unpushed = await unpushedCount(path, null, project.baseBranch, false)
+                return { ...base, dirty, unpushed, remoteBranchExists: false, merged: false }
               }
 
               const [hasRemote, merged] = await Promise.all([
@@ -176,13 +187,14 @@ export const worktreeRoutes: FastifyPluginAsync<{ store: ConfigStore }> = async 
       const branch = entry.branch
 
       // No branch is not taken as safe either: a detached HEAD can have live work.
-      if (!force) {
+      // A dead entry is the exception: git cannot answer for it any more, and the
+      // check would block the very cleanup that gets rid of it.
+      if (!force && !entry.prunable) {
         const dirty = await isDirty(path).catch(() => false)
-        let unpushed = 0
-        if (branch) {
-          const hasRemote = await remoteBranchExists(project.repo, branch).catch(() => false)
-          unpushed = await unpushedCount(path, branch, project.baseBranch, hasRemote)
-        }
+        const hasRemote = branch
+          ? await remoteBranchExists(project.repo, branch).catch(() => false)
+          : false
+        const unpushed = await unpushedCount(path, branch, project.baseBranch, hasRemote)
 
         if (dirty || unpushed > 0) {
           const lang = langOf(reply)

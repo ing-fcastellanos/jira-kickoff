@@ -105,6 +105,8 @@ export interface WorktreeInfo {
   /** Lives inside the configured worktree folder; only these can be deleted. */
   managed: boolean
   isMain: boolean
+  /** Leftovers of a removal that did not finish: only the folder is still there. */
+  prunable: boolean
   dirty: boolean
   unpushed: number
   remoteBranchExists: boolean

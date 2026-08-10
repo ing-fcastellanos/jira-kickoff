@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { GitError } from './git'
 import { LocalizedError } from './messages'
@@ -13,6 +13,15 @@ const QUICK_MS = 10_000
 /** `fetch` goes to the network and a repo with years of history takes longer than it looks. */
 const FETCH_MS = 90_000
 const ADD_MS = 120_000
+/** `status` walks the whole working tree: with node_modules installed it is not a quick command. */
+const STATUS_MS = 30_000
+/**
+ * Deleting is measured in files, not in commits: a worktree with dependencies
+ * installed is tens of thousands of them and on Windows that is half a minute of
+ * real work (30k files ≈ 14s measured). The old 10s cap killed `git worktree
+ * remove` halfway through, which is worse than slow — see `isLeftover`.
+ */
+const REMOVE_MS = 300_000
 
 async function git(repo: string, args: string[], timeout: number): Promise<string> {
   try {
@@ -37,6 +46,11 @@ async function git(repo: string, args: string[], timeout: number): Promise<strin
 export interface WorktreeEntry {
   path: string
   branch: string | null
+  /**
+   * git no longer considers the entry alive: its administrative link does not
+   * resolve. In practice it is what an interrupted removal leaves behind.
+   */
+  prunable: boolean
 }
 
 /** Normalizes separators: git answers with `/` even on Windows. */
@@ -45,22 +59,30 @@ function samePath(a: string, b: string): boolean {
   return norm(a) === norm(b)
 }
 
-export async function listWorktrees(repo: string): Promise<WorktreeEntry[]> {
-  const stdout = await git(repo, ['worktree', 'list', '--porcelain'], QUICK_MS)
+/** Split out from `listWorktrees` so the porcelain format can be tested without a repo. */
+export function parseWorktreeList(stdout: string): WorktreeEntry[] {
   const entries: WorktreeEntry[] = []
-  let current: Partial<WorktreeEntry> = {}
+  let current: WorktreeEntry | null = null
 
   for (const line of stdout.split('\n')) {
     const trimmed = line.trim()
     if (trimmed.startsWith('worktree ')) {
-      current = { path: trimmed.slice('worktree '.length), branch: null }
-      entries.push(current as WorktreeEntry)
+      current = { path: trimmed.slice('worktree '.length), branch: null, prunable: false }
+      entries.push(current)
+    } else if (!current) {
+      continue
     } else if (trimmed.startsWith('branch ')) {
       const ref = trimmed.slice('branch '.length)
       current.branch = ref.startsWith('refs/heads/') ? ref.slice('refs/heads/'.length) : ref
+    } else if (trimmed === 'prunable' || trimmed.startsWith('prunable ')) {
+      current.prunable = true
     }
   }
   return entries
+}
+
+export async function listWorktrees(repo: string): Promise<WorktreeEntry[]> {
+  return parseWorktreeList(await git(repo, ['worktree', 'list', '--porcelain'], QUICK_MS))
 }
 
 export async function isValidBranchName(repo: string, branch: string): Promise<boolean> {
@@ -105,21 +127,22 @@ export function worktreePathFor(repo: string, dir: string, ticketKey: string): s
 
 /** There are uncommitted changes in the working tree. */
 export async function isDirty(worktreePath: string): Promise<boolean> {
-  const stdout = await git(worktreePath, ['status', '--porcelain'], QUICK_MS)
+  const stdout = await git(worktreePath, ['status', '--porcelain'], STATUS_MS)
   return stdout.trim().length > 0
 }
 
 /**
  * Commits that only exist here. Compared against the branch's own remote when it
- * exists; if the branch was never pushed, against the base.
+ * exists; if the branch was never pushed —or there is no branch at all, which is
+ * how the explore sessions leave the worktree— against the base.
  */
 export async function unpushedCount(
   worktreePath: string,
-  branch: string,
+  branch: string | null,
   baseBranch: string,
   hasRemote: boolean,
 ): Promise<number> {
-  const upstream = hasRemote ? `origin/${branch}` : `origin/${baseBranch}`
+  const upstream = hasRemote && branch ? `origin/${branch}` : `origin/${baseBranch}`
   try {
     const stdout = await git(worktreePath, ['rev-list', '--count', `${upstream}..HEAD`], QUICK_MS)
     return Number.parseInt(stdout.trim(), 10) || 0
@@ -145,14 +168,35 @@ export async function branchIsMerged(
   }
 }
 
+/**
+ * What an interrupted removal leaves behind.
+ *
+ * `git worktree remove` deletes the `.git` link before the files. If it is cut
+ * short —as the old 10s cap did on any worktree with dependencies installed—
+ * what is left is a folder that git refuses to touch ever again: every later
+ * attempt dies with `validation failed … '.git' does not exist`, and the entry
+ * can never be removed from the panel. Nothing but the filesystem clears it.
+ */
+function isLeftover(worktreePath: string): boolean {
+  return existsSync(worktreePath) && !existsSync(join(worktreePath, '.git'))
+}
+
 export async function removeWorktree(
   repo: string,
   worktreePath: string,
   force: boolean,
 ): Promise<void> {
+  if (isLeftover(worktreePath)) {
+    // The retries are for Windows: an indexer or an editor holds a handle for a
+    // moment and the first unlink fails with EBUSY on a folder that is going away.
+    await rm(worktreePath, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
+    await pruneWorktrees(repo)
+    return
+  }
+
   const args = ['worktree', 'remove', worktreePath]
   if (force) args.push('--force')
-  await git(repo, args, QUICK_MS)
+  await git(repo, args, REMOVE_MS)
 }
 
 export async function deleteBranch(repo: string, branch: string): Promise<void> {

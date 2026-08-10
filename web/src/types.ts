@@ -169,6 +169,7 @@ export interface WorktreeInfo {
   branch: string | null
   managed: boolean
   isMain: boolean
+  prunable: boolean
   dirty: boolean
   unpushed: number
   remoteBranchExists: boolean
