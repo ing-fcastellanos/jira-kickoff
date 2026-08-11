@@ -300,6 +300,16 @@ export default function SettingsDialog({
                 </p>
               </div>
 
+              <Field label={t('set.inProgress')} hint={t('set.inProgressHint')}>
+                <input
+                  value={draft.jira.inProgressStatus}
+                  onChange={(e) => patch((d) => void (d.jira.inProgressStatus = e.target.value))}
+                  placeholder="In Progress"
+                  spellCheck={false}
+                  className={inputClass}
+                />
+              </Field>
+
               <Field label={t('set.extraJql')}>
                 <input
                   value={draft.jira.extraJql}

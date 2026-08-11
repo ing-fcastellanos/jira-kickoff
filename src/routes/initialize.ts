@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { resolvePrompt, type ConfigStore } from '../config'
 import type { TicketService } from '../ticket-service'
 import type { HistoryStore } from '../history'
-import type { InitializeResult, PromptResponse, Ticket } from '../types'
+import type { InitializeResult, PromptResponse, Ticket, TicketTransition } from '../types'
 import { PROMPT_MAX_LENGTH, PROMPT_WARN_LENGTH, URL_SAFE_LENGTH, composePrompt } from '../prompt'
 import { buildDeepLink, openUrl } from '../launcher'
 import {
@@ -16,7 +16,7 @@ import {
   setWorktreePermissionMode,
   worktreePathFor,
 } from '../worktree'
-import { replyWithError, say } from './errors'
+import { describeError, replyWithError, say } from './errors'
 
 const initializeBody = z.object({
   ticketKey: z.string().min(1),
@@ -176,6 +176,22 @@ export const initializeRoutes: FastifyPluginAsync<{
         }
       }
 
+      // The board is moved after the session is on its way, never before: this
+      // talks to Jira over the network and the session should not wait for it.
+      // A ticket that cannot be moved is a note on the result screen and nothing
+      // more — the worktree is already there and that is what was asked for.
+      let transition: TicketTransition
+      try {
+        transition = await tickets.moveTo(r.ticket, config.jira.inProgressStatus)
+      } catch (err) {
+        transition = {
+          from: r.ticket.status,
+          to: config.jira.inProgressStatus,
+          outcome: 'failed',
+          error: describeError(reply, err),
+        }
+      }
+
       // Recorded even if the deep link fails: the worktree exists and the ticket
       // is started, which is exactly what the tracking must reflect.
       history.record({
@@ -198,6 +214,7 @@ export const initializeRoutes: FastifyPluginAsync<{
         launched,
         launchError,
         model: model || null,
+        transition,
       }
       return result
     } catch (err) {

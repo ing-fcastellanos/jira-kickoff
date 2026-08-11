@@ -1,7 +1,7 @@
 import type { AppConfig, ConfigStore } from './config'
 import { enabledProjectKeys } from './config'
-import { JiraClient, buildAssignedJql, type JiraIssue } from './jira'
-import type { Ticket, TicketsResponse } from './types'
+import { JiraClient, buildAssignedJql, pickTransition, sameStatus, type JiraIssue } from './jira'
+import type { Ticket, TicketTransition, TicketsResponse } from './types'
 import { LocalizedError } from './messages'
 
 /** Jira does not change between two F5s; without this every render hits the API. */
@@ -85,6 +85,44 @@ export class TicketService {
     }
     this.cache = { at: Date.now(), payload }
     return payload
+  }
+
+  /**
+   * Moves the ticket to `status`, and says what happened.
+   *
+   * The cached status is not trusted to decide: it can be half a minute old and
+   * the ticket may have been moved from Jira in the meantime. The cheap check
+   * comes first anyway, so the common case —a ticket sitting in To Do— costs the
+   * two calls it needs and not three.
+   *
+   * Errors are not swallowed here: the caller is the one that knows whether a
+   * failure should abort anything, and only the HTTP edge can translate them.
+   */
+  async moveTo(ticket: Ticket, status: string): Promise<TicketTransition> {
+    const to = status.trim()
+    const outcome = (
+      result: TicketTransition['outcome'],
+      from = ticket.status,
+    ): TicketTransition => ({ from, to, outcome: result })
+
+    if (!to) return outcome('disabled')
+    if (sameStatus(ticket.status, to)) return outcome('already')
+
+    const client = this.client()
+    const chosen = pickTransition(await client.transitions(ticket.key), to)
+
+    // No transition to that status can mean two things, and they read very
+    // differently: the ticket is already there —the list was stale— or the
+    // workflow simply does not go that way from where it is.
+    if (!chosen) {
+      const live = await client.status(ticket.key)
+      return sameStatus(live, to) ? outcome('already', live) : outcome('unavailable', live)
+    }
+
+    await client.transition(ticket.key, chosen.id)
+    // The list would keep serving the old status for the rest of the TTL.
+    this.cache = null
+    return outcome('moved')
   }
 
   /** A ticket missing from the cache may have been assigned a second ago: retried fresh. */

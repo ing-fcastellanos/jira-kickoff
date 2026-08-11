@@ -29,7 +29,7 @@ export interface ProjectSettings {
 
 export interface FileConfig {
   server: { port: number }
-  jira: { site: string; statuses: string[]; extraJql: string }
+  jira: { site: string; statuses: string[]; extraJql: string; inProgressStatus: string }
   worktrees: { dir: string; alignOriginHead: boolean }
   branch: { pattern: string; slugMaxLength: number }
   launch: { mode: 'open' | 'clipboard'; permissionMode: PermissionMode; defaultModel: string }
@@ -106,6 +106,15 @@ export interface PromptResponse {
   warnLength: number
 }
 
+export type TransitionOutcome = 'moved' | 'already' | 'unavailable' | 'failed' | 'disabled'
+
+export interface TicketTransition {
+  from: string
+  to: string
+  outcome: TransitionOutcome
+  error?: string
+}
+
 export interface InitializeResult {
   ticketKey: string
   branch: string
@@ -117,6 +126,7 @@ export interface InitializeResult {
   launched: boolean
   launchError: string | null
   model: string | null
+  transition: TicketTransition
 }
 
 export interface TicketComment {

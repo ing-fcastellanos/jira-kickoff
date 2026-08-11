@@ -36,6 +36,25 @@ export interface PromptResponse {
   warnLength: number
 }
 
+/**
+ * What happened with the ticket's status when it was initialized.
+ *
+ * `already` is a success and not a no-op worth hiding: it is the answer to "did
+ * this leave my board right?". `unavailable` means the workflow does not go from
+ * where the ticket is to the configured status, and `failed` that Jira refused.
+ * Neither of them aborts anything: the worktree and the session are the point.
+ */
+export type TransitionOutcome = 'moved' | 'already' | 'unavailable' | 'failed' | 'disabled'
+
+export interface TicketTransition {
+  /** Where the ticket was, as fresh as we could tell. */
+  from: string
+  /** The configured target. Empty when the feature is switched off. */
+  to: string
+  outcome: TransitionOutcome
+  error?: string
+}
+
 export interface InitializeResult {
   ticketKey: string
   branch: string
@@ -49,6 +68,7 @@ export interface InitializeResult {
   launchError: string | null
   /** Null when inherited: nothing was written to the worktree's settings. */
   model: string | null
+  transition: TicketTransition
 }
 
 export interface TicketComment {

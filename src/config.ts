@@ -28,6 +28,12 @@ const configSchema = z.object({
     statuses: z.array(z.string().min(1)),
     /** Appended to the generated JQL. Useful to narrow to a sprint or an epic. */
     extraJql: z.string().default(''),
+    /**
+     * Status the ticket is moved to when it is initialized, if it is not already
+     * there. The exact name from your Jira, because that is what the workflow's
+     * transitions land on. Empty means the panel does not touch the ticket.
+     */
+    inProgressStatus: z.string().trim().default('In Progress'),
   }),
   worktrees: z.object({
     dir: z.string().min(1),
@@ -101,7 +107,7 @@ export class ConfigError extends Error {}
 /** Starting point for a fresh install, before the wizard. */
 export const DEFAULT_CONFIG: FileConfig = {
   server: { port: 8787 },
-  jira: { site: '', statuses: ['To Do', 'In Progress'], extraJql: '' },
+  jira: { site: '', statuses: ['To Do', 'In Progress'], extraJql: '', inProgressStatus: 'In Progress' },
   worktrees: { dir: '.worktrees', alignOriginHead: false },
   branch: { pattern: 'feature/{{ticket-lower}}-{{slug}}', slugMaxLength: 40 },
   launch: { mode: 'open', permissionMode: 'inherit', defaultModel: '' },

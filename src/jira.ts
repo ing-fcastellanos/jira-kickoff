@@ -59,10 +59,41 @@ export interface JiraIssueDetail {
   }
 }
 
+/**
+ * A move the workflow allows from the ticket's current status. `to` is where it
+ * would leave it, which is the only part that means the same in every project.
+ */
+export interface JiraTransition {
+  id: string
+  name: string
+  to: { name: string }
+}
+
 export interface JiraCredentials {
   site: string
   email: string
   token: string
+}
+
+/** Two status names are the same one. Jira is not case sensitive about them either. */
+export function sameStatus(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
+/**
+ * The transition that lands on `status`, or null if the workflow does not offer
+ * one from where the ticket is.
+ *
+ * It is matched by destination and not by the transition's own name: a project
+ * can call the move "Start", "Empezar" or "MAID-42", but where it leaves the
+ * ticket is not a matter of taste. Picking by name would also happily fire a
+ * transition called "In Progress" that lands somewhere else entirely.
+ */
+export function pickTransition(
+  transitions: JiraTransition[],
+  status: string,
+): JiraTransition | null {
+  return transitions.find((tr) => tr.to?.name && sameStatus(tr.to.name, status)) ?? null
 }
 
 /**
@@ -133,6 +164,10 @@ export class JiraClient {
       throw new JiraError('err.jiraStatus', { status: res.status }, res.status)
     }
 
+    // A transition answers 204 with an empty body: parsing it as JSON would turn
+    // a success into an exception.
+    if (res.status === 204) return undefined as T
+
     return (await res.json()) as T
   }
 
@@ -160,6 +195,29 @@ export class JiraClient {
       'comment',
     ].join(',')
     return this.request(`/rest/api/3/issue/${encodeURIComponent(key)}?fields=${fields}`)
+  }
+
+  /** Just the status, for when the cached ticket is not enough to decide. */
+  async status(key: string): Promise<string> {
+    const issue = await this.request<{ fields: { status: { name: string } } }>(
+      `/rest/api/3/issue/${encodeURIComponent(key)}?fields=status`,
+    )
+    return issue.fields.status.name
+  }
+
+  /** What the workflow allows from where the ticket is right now, not every transition. */
+  async transitions(key: string): Promise<JiraTransition[]> {
+    const res = await this.request<{ transitions?: JiraTransition[] }>(
+      `/rest/api/3/issue/${encodeURIComponent(key)}/transitions`,
+    )
+    return res.transitions ?? []
+  }
+
+  async transition(key: string, transitionId: string): Promise<void> {
+    await this.request(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, {
+      method: 'POST',
+      body: JSON.stringify({ transition: { id: transitionId } }),
+    })
   }
 
   async search(jql: string): Promise<JiraIssue[]> {

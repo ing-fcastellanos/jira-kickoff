@@ -12,6 +12,14 @@ export function say(reply: FastifyReply, key: MessageKey, vars?: Vars): string {
 }
 
 /**
+ * The readable text of a failure that must not abort the request, for the ones
+ * that travel inside a successful answer instead of replacing it.
+ */
+export function describeError(reply: FastifyReply, err: unknown): string {
+  return err instanceof LocalizedError ? err.localized(langOf(reply)) : String((err as Error).message)
+}
+
+/**
  * Translates known failures and answers with the readable text.
  *
  * The translation happens here and not where the error is thrown: git, Jira and

@@ -83,6 +83,12 @@ export const en = {
   'result.branch': 'Branch',
   'result.worktree': 'Worktree',
   'result.model': 'Model',
+  'result.status': 'Ticket',
+  'result.statusMoved': 'Moved from {from} to {to}',
+  'result.statusAlready': 'Already in {to}',
+  'result.statusUnavailable': 'Left in {from}: the workflow does not offer a move to {to} from there.',
+  'result.statusFailed': 'Could not move it to {to}: {detail}',
+  'result.statusOff': '{status} · the panel does not change it',
   'result.what': 'What happened',
   'result.copyPrompt': 'Copy prompt',
   'result.copyPath': 'Copy path',
@@ -170,6 +176,9 @@ export const en = {
   'set.statusesHint':
     'The exact names from your Jira. They are listed one by one on purpose: filtering by category mixes statuses that mean different things.',
   'set.extraJql': 'Extra JQL filter (optional)',
+  'set.inProgress': 'Status when initializing',
+  'set.inProgressHint':
+    'Initializing a ticket moves it to this status, unless it is already there. The exact name from your Jira: it is matched against where each transition of your workflow lands. Leave it empty and the panel will not touch the ticket.',
   'set.projects': 'Projects',
   'set.projectsHint':
     'Each Jira key pointing at the local repository where its worktrees will be created.',
@@ -322,6 +331,12 @@ const es: Record<Key, string> = {
   'result.branch': 'Rama',
   'result.worktree': 'Worktree',
   'result.model': 'Modelo',
+  'result.status': 'Ticket',
+  'result.statusMoved': 'Pasó de {from} a {to}',
+  'result.statusAlready': 'Ya estaba en {to}',
+  'result.statusUnavailable': 'Se queda en {from}: el flujo no ofrece un paso a {to} desde ahí.',
+  'result.statusFailed': 'No pude pasarlo a {to}: {detail}',
+  'result.statusOff': '{status} · el panel no lo cambia',
   'result.what': 'Qué pasó',
   'result.copyPrompt': 'Copiar prompt',
   'result.copyPath': 'Copiar ruta',
@@ -409,6 +424,9 @@ const es: Record<Key, string> = {
   'set.statusesHint':
     'Los nombres exactos de tu Jira. Se enumeran uno a uno a propósito: filtrar por categoría mezcla status que significan cosas distintas.',
   'set.extraJql': 'Filtro JQL adicional (opcional)',
+  'set.inProgress': 'Status al inicializar',
+  'set.inProgressHint':
+    'Inicializar un ticket lo pasa a este status, salvo que ya esté ahí. El nombre exacto de tu Jira: se compara contra dónde deja el ticket cada transición de tu flujo. Déjalo vacío y el panel no toca el ticket.',
   'set.projects': 'Proyectos',
   'set.projectsHint':
     'Cada clave de Jira apuntando al repositorio local donde se crearán sus worktrees.',

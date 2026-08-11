@@ -5,7 +5,8 @@
   "jira": {
     "site": "https://your-domain.atlassian.net",
     "statuses": ["To Do", "In Progress"],
-    "extraJql": ""
+    "extraJql": "",
+    "inProgressStatus": "In Progress"
   },
   "worktrees": {
     "dir": ".claude/worktrees"

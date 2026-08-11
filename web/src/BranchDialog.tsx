@@ -90,7 +90,7 @@ export default function BranchDialog({
 }: {
   ticket: Ticket
   onClose: () => void
-  onInitialized: () => void
+  onInitialized: (statusMoved: boolean) => void
 }) {
   const { t } = useT()
   const [load, setLoad] = useState<Load>({ status: 'loading' })
@@ -178,7 +178,8 @@ export default function BranchDialog({
         model,
       })
       setResult(res)
-      onInitialized()
+      // Only a real move is worth a fresh Jira query: the card shows the status.
+      onInitialized(res.transition.outcome === 'moved')
     } catch (err) {
       setSubmitError((err as Error).message)
     } finally {
@@ -375,6 +376,42 @@ export default function BranchDialog({
   )
 }
 
+interface Row {
+  label: string
+  value: string
+  mono?: boolean
+  /** Only for what did not go as intended: the rest of the summary stays quiet. */
+  warn?: boolean
+}
+
+/**
+ * The line about the ticket's status.
+ *
+ * `already` is reported and not hidden: after pressing initialize the question
+ * is "did my board end up right", and silence does not answer it. Only a panel
+ * configured not to touch Jira says nothing at all.
+ */
+function statusRow(
+  transition: InitializeResult['transition'],
+  t: (key: MsgKey, vars?: Record<string, string | number>) => string,
+): Row {
+  const { from, to, outcome, error } = transition
+  const label = t('result.status')
+
+  switch (outcome) {
+    case 'moved':
+      return { label, value: t('result.statusMoved', { from, to }) }
+    case 'already':
+      return { label, value: t('result.statusAlready', { to }) }
+    case 'unavailable':
+      return { label, value: t('result.statusUnavailable', { from, to }), warn: true }
+    case 'failed':
+      return { label, value: t('result.statusFailed', { to, detail: error ?? '' }), warn: true }
+    case 'disabled':
+      return { label, value: t('result.statusOff', { status: from }) }
+  }
+}
+
 function ResultView({ result, onClose }: { result: InitializeResult; onClose: () => void }) {
   const { t } = useT()
   const promptFromLink = decodeURIComponent(
@@ -394,11 +431,16 @@ function ResultView({ result, onClose }: { result: InitializeResult; onClose: ()
       ? t('result.clipboardBody')
       : result.launchError
 
-  const rows: [string, string, boolean][] = [
-    [t('result.branch'), result.branch, true],
-    [t('result.worktree'), result.worktree, true],
-    [t('result.model'), result.model ?? t('set.modelInherit'), Boolean(result.model)],
-    [t('result.what'), t(ACTION_KEY[result.branchAction]), false],
+  const rows: Row[] = [
+    { label: t('result.branch'), value: result.branch, mono: true },
+    { label: t('result.worktree'), value: result.worktree, mono: true },
+    {
+      label: t('result.model'),
+      value: result.model ?? t('set.modelInherit'),
+      mono: Boolean(result.model),
+    },
+    { label: t('result.what'), value: t(ACTION_KEY[result.branchAction]) },
+    statusRow(result.transition, t),
   ]
 
   return (
@@ -408,12 +450,14 @@ function ResultView({ result, onClose }: { result: InitializeResult; onClose: ()
       </Note>
 
       <dl className="flex flex-col gap-2">
-        {rows.map(([label, value, mono]) => (
+        {rows.map(({ label, value, mono, warn }) => (
           <div key={label} className="flex gap-3">
             <dt className="w-[86px] shrink-0 text-xs text-ink-5">{label}</dt>
             <dd
               className={`min-w-0 break-all ${
-                mono ? 'font-mono text-[11.5px] text-ink-2' : 'text-[12.5px] text-ink-3'
+                mono
+                  ? 'font-mono text-[11.5px] text-ink-2'
+                  : `text-[12.5px] ${warn ? 'text-warn' : 'text-ink-3'}`
               }`}
             >
               {value}

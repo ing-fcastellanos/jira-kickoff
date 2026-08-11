@@ -84,7 +84,7 @@ validation before writing and an atomic write:
 | Section | What it holds |
 |---|---|
 | Appearance | Light, dark or follow the system. Stored in the browser, not in `config.json`. |
-| Jira | Domain, which statuses to include, and an optional extra JQL filter. |
+| Jira | Domain, which statuses to include, the status a ticket is moved to when you initialize it, and an optional extra JQL filter. |
 | Projects | Each Jira key pointing to a local repository, with its base branch. They can be disabled without deleting them. |
 | Branch and worktree | Branch name pattern, with a live preview, where worktrees are created, and whether to align `origin/HEAD` with the base branch. |
 | Editor | Which command opens a worktree from the list, and with which arguments. |
@@ -135,7 +135,14 @@ POST /api/initialize { ticketKey, branch, prompt }
   2. `git fetch origin`  ← essential: ls-remote does not update local refs
   3. `git worktree add` in <repo>/<worktrees.dir>/<ticket>
   4. builds the deep link and hands it to the system
+  5. moves the ticket to `jira.inProgressStatus`, if it is not already there
 ```
+
+Step 5 is last on purpose: it goes over the network and the session should not wait for
+it. The transition is chosen by where it lands the ticket and not by its name, because a
+workflow can call the move anything; if there is no transition to that status from where
+the ticket is, or Jira refuses it, the result screen says so and nothing else changes.
+Leave the setting empty and the ticket is never touched.
 
 The worktree is named after the ticket, not after the branch: it is short, predictable
 and makes the operation idempotent. Re-initializing the same ticket with the same branch

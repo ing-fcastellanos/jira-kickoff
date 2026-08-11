@@ -224,7 +224,12 @@ export default function App() {
         <BranchDialog
           ticket={selected}
           onClose={() => setSelected(null)}
-          onInitialized={refreshActivity}
+          onInitialized={(statusMoved) => {
+            refreshActivity()
+            // The card carries the ticket's status: after moving it, the cached
+            // list would keep showing the old one.
+            if (statusMoved) void fetchTickets(true)
+          }}
         />
       )}
       {showWorktrees && (
